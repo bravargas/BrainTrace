@@ -19,7 +19,7 @@ if($PSCmdlet.ShouldProcess($Destination,"Install BrainTrace Worker for $Node")){
     foreach($folder in @($Destination,(Join-Path $Destination 'Commands'),(Join-Path $Destination 'Status'),(Join-Path $Destination 'Archive'),(Join-Path $Destination 'Logs'))){
         if(-not(Test-Path -LiteralPath $folder)){New-Item -ItemType Directory -Path $folder -Force|Out-Null}
     }
-    foreach($fileName in @('Worker.ps1','BrainTrace.Common.ps1')){
+    foreach($fileName in @('Worker.ps1','BrainTrace.Common.ps1','Test-Worker.ps1')){
         $sourcePath=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot $fileName))
         $destinationPath=[IO.Path]::GetFullPath((Join-Path $Destination $fileName))
         if(-not$sourcePath.Equals($destinationPath,[StringComparison]::OrdinalIgnoreCase)){

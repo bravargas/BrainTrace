@@ -22,4 +22,22 @@ Describe 'Worker installer support' {
         $worker=Get-Content (Join-Path $repo 'Worker.ps1') -Raw
         $worker|Should -Match '\$Root = \$PSScriptRoot'
     }
+    It 'installs the one-command smoke-test script' {
+        $text=Get-Content (Join-Path $repo 'Install-Worker.ps1') -Raw
+        $text|Should -Match 'Test-Worker\.ps1'
+        $smoke=Get-Content (Join-Path $repo 'Test-Worker.ps1') -Raw
+        $smoke|Should -Match '-DryRun'
+        $smoke|Should -Match 'ComponentsBefore'
+    }
+    It 'runs the Worker smoke test without changing component state' {
+        $root=Join-Path $TestDrive 'worker'
+        New-Item -ItemType Directory -Path $root -Force|Out-Null
+        Copy-Item (Join-Path $repo 'Worker.ps1') $root
+        Copy-Item (Join-Path $repo 'BrainTrace.Common.ps1') $root
+        $environment=Get-BrainTraceEnvironmentConfig DEV $repo
+        Write-BrainTraceJsonAtomic ([ordered]@{LocalNode='vsmobwebdev05';EnvironmentConfig=$environment}) (Join-Path $root 'NodeConfig.json')
+        $result=& (Join-Path $repo 'Test-Worker.ps1') -Root $root
+        $result.Success|Should -BeTrue
+        ($result.ComponentsBefore|ConvertTo-Json -Compress)|Should -Be ($result.ComponentsAfter|ConvertTo-Json -Compress)
+    }
 }

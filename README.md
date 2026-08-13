@@ -45,6 +45,15 @@ Manual Worker execution:
 D:\FiservSoftware\PowerShell\BrainTrace\Worker.ps1
 ```
 
+Safe local Worker smoke test (always invokes the isolated Worker with `-DryRun`):
+
+```powershell
+cd D:\FiservSoftware\PowerShell\BrainTrace
+.\Test-Worker.ps1
+```
+
+The test creates a temporary queue, exercises the node's configured STOP plan without effects, verifies component state before/after, checks status/archive behavior, reports the Scheduled Task state, and removes its temporary files.
+
 ## Real workflows
 
 After all Workers, shares, ACLs, and Scheduled Tasks are reviewed and installed:

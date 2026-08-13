@@ -110,7 +110,7 @@ function Invoke-BrainTraceBundle {
 
 function Wait-BrainTraceStatus {
     param([string]$Path,[datetime]$Deadline,[int]$PollSeconds)
-    while([datetime]::UtcNow-lt$Deadline){if(Test-Path -LiteralPath $Path){return Read-BrainTraceJson $Path};Start-Sleep -Seconds $PollSeconds}
+    while([datetime]::UtcNow-lt$Deadline.ToUniversalTime()){if(Test-Path -LiteralPath $Path){return Read-BrainTraceJson $Path};Start-Sleep -Seconds $PollSeconds}
     return $null
 }
 
@@ -140,7 +140,7 @@ foreach($file in @(Get-ChildItem -LiteralPath (Join-Path $Root 'Commands') -File
         $command=Read-BrainTraceJson $file.FullName
         if($command.Environment-ine$config.Environment){throw 'Command Environment mismatch.'}
         if($command.Action-notin@('STOP','CLEAN','START','COLLECT','BUNDLE')){throw "Unsupported action '$($command.Action)'."}
-        if(([datetime]$command.ExpiresUtc)-le[datetime]::UtcNow){throw 'Command is expired.'}
+        if(([datetime]$command.ExpiresUtc).ToUniversalTime()-le[datetime]::UtcNow){throw 'Command is expired.'}
         if($command.TargetNode-ine$localNode.Name){$message=Invoke-BrainTraceRelay $command $config $localNode $Root}
         else{
             $workerLog=Join-Path (Join-Path $Root 'Logs') ($command.RunId+'.log')

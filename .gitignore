@@ -1,0 +1,14 @@
+# Worker-local installed configuration and runtime queues
+/NodeConfig.json
+/Commands/
+/Status/
+/Archive/
+/Logs/
+
+# Aggregator runtime output
+/Staging/
+/*.zip
+
+# PowerShell and test artifacts
+*.tmp
+TestResults/

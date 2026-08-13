@@ -37,7 +37,7 @@ function Wait-BrainTraceControllerStatus {
     param($Config,$Pending)
     $path=Join-Path (Join-Path $Pending.Root 'Status') ("$($Pending.Message.RunId)_$($Pending.Message.CommandId).status.json")
     $deadline=[datetime]$Pending.Message.ExpiresUtc
-    while([datetime]::UtcNow-lt$deadline){if(Test-Path -LiteralPath $path){return Read-BrainTraceJson $path};Start-Sleep -Seconds ([int]$Config.PollSeconds)}
+    while([datetime]::UtcNow-lt$deadline.ToUniversalTime()){if(Test-Path -LiteralPath $path){return Read-BrainTraceJson $path};Start-Sleep -Seconds ([int]$Config.PollSeconds)}
     [pscustomobject]@{RunId=$Pending.Message.RunId;Node=$Pending.Message.TargetNode;Action=$Pending.Message.Action;Success=$false;Message='Timed out waiting for Worker status.';TimestampUtc=[datetime]::UtcNow.ToString('o')}
 }
 

@@ -49,6 +49,11 @@ Describe 'Critical workflow policy' {
         foreach($code in 0..7){(Get-BrainTraceRobocopyResult $code).Success|Should -BeTrue}
         (Get-BrainTraceRobocopyResult 8).Success|Should -BeFalse;(Get-BrainTraceRobocopyResult 16).Success|Should -BeFalse
     }
+    It 'compares ISO UTC expirations in UTC rather than local wall-clock ticks' {
+        $expires=([datetime]::UtcNow.AddMinutes(5).ToString('o'))
+        ([datetime]$expires).ToUniversalTime()|Should -BeGreaterThan ([datetime]::UtcNow)
+        (Get-Content (Join-Path $repo 'Worker.ps1') -Raw)|Should -Match 'ExpiresUtc\)\.ToUniversalTime\(\)'
+    }
     It 'does not invoke CLEAN after any STOP failure and still invokes START' {
         $script:actions=@()
         $result=Invoke-BrainTracePreparePolicy {

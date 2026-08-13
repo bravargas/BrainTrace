@@ -1,0 +1,29 @@
+{
+  "SchemaVersion": 1,
+  "EnvironmentId": "Café",
+  "ConfigRevision": "vector-1",
+  "CanonicalHashProfile": "BrainTraceCanonicalNodeV1",
+  "Node": {
+    "Name": "AIO1",
+    "MachineNames": ["aio1.example", "AIO1"],
+    "Roles": ["WEB", "APP"],
+    "WorkerRoot": "D:\\BrainTrace\\",
+    "AllowedCleanupRoots": ["D:\\Logs\\Apps\\", "D:\\Logs\\Other"],
+    "Components": [
+      { "Id": "IIS", "Type": "IIS", "ResourceName": "IIS", "StopOrder": 20, "StartOrder": 10, "RequiredEndState": "Running" },
+      { "Id": "Svc", "Type": "WindowsService", "ResourceName": "ExampleSvc", "StopOrder": 10, "StartOrder": 20 }
+    ],
+    "LogSources": [
+      { "Id": "Main", "Path": "D:\\Logs\\Apps\\Main\\", "Workloads": ["WEB", "APP"], "CleanupEnabled": true, "CollectEnabled": false, "SafetyMarker": null }
+    ],
+    "CollectionAssignments": [
+      {
+        "RouteId": "AIO1-Main",
+        "StepOrder": 1,
+        "ExecutorNode": "AIO1",
+        "Read": { "Node": "AIO1", "Kind": "LogSource", "Ref": "Main", "AccessPath": "D:\\Logs\\Apps\\Main\\" },
+        "Write": { "Node": "AIO1", "Kind": "AggregatorStaging", "PathTemplate": "D:\\BrainTrace\\Staging\\{RunId}\\nodes\\AIO1\\Main\\" }
+      }
+    ]
+  }
+}

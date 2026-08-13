@@ -1,0 +1,69 @@
+{
+  "SchemaVersion": 1,
+  "EnvironmentId": "FUTURE-AIO",
+  "ConfigRevision": "2026-08-13-example-2",
+  "CanonicalHashProfile": "BrainTraceCanonicalNodeV1",
+  "Node": {
+    "Name": "FULLAIO1",
+    "MachineNames": ["FULLAIO1"],
+    "Roles": ["APP", "WEB", "TP"],
+    "WorkerRoot": "D:\\BrainTrace",
+    "AllowedCleanupRoots": [
+      "D:\\Program File\\Fiserv\\Mobiliti",
+      "D:\\Logfiles\\Mobile"
+    ],
+    "Components": [
+      {
+        "Id": "MobilitiService",
+        "Type": "WindowsService",
+        "ResourceName": "Mobiliti",
+        "StopOrder": 200,
+        "StartOrder": 200,
+        "RequiredEndState": "Running"
+      },
+      {
+        "Id": "IIS",
+        "Type": "IIS",
+        "ResourceName": "IIS",
+        "StopOrder": 300,
+        "StartOrder": 100,
+        "RequiredEndState": "Running"
+      },
+      {
+        "Id": "StandardBankingServicePool",
+        "Type": "IISAppPool",
+        "ResourceName": "StandardBankingService",
+        "StopOrder": 100,
+        "StartOrder": 300,
+        "RequiredEndState": "Running"
+      }
+    ],
+    "LogSources": [
+      {
+        "Id": "MobilitiLogs",
+        "Path": "D:\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs",
+        "Workloads": ["APP", "WEB"],
+        "CleanupEnabled": true,
+        "CollectEnabled": true,
+        "SafetyMarker": ".braintrace-log-root"
+      },
+      {
+        "Id": "SBILogs",
+        "Path": "D:\\Logfiles\\Mobile\\SBILogs\\4.5",
+        "Workloads": ["TP"],
+        "CleanupEnabled": true,
+        "CollectEnabled": true,
+        "SafetyMarker": ".braintrace-log-root"
+      }
+    ],
+    "CollectionAssignments": [
+      {
+        "RouteId": "FULLAIO1-MobilitiLogs-local",
+        "StepOrder": 1,
+        "ExecutorNode": "FULLAIO1",
+        "Read": { "Node": "FULLAIO1", "Kind": "LogSource", "Ref": "MobilitiLogs", "AccessPath": "D:\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs" },
+        "Write": { "Node": "FULLAIO1", "Kind": "AggregatorStaging", "PathTemplate": "D:\\BrainTrace\\Staging\\{RunId}\\nodes\\FULLAIO1\\MobilitiLogs" }
+      }
+    ]
+  }
+}

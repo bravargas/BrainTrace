@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$Root = 'D:\BrainTrace',
+    [string]$Root = $PSScriptRoot,
     [string]$ConfigPath = (Join-Path $Root 'NodeConfig.json'),
     [switch]$DryRun,
     [int]$MaxCommands = 20

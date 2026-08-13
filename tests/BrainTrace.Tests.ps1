@@ -9,6 +9,7 @@ Describe 'BrainTrace MVP configuration' {
         $config.Nodes.Count|Should -Be 6
         $config.Controller|Should -BeExactly vscorappdev01
         $config.Aggregator|Should -BeExactly vsmobappdev03
+        $config.WorkerRoot|Should -BeExactly 'D:\FiservSoftware\PowerShell\BrainTrace'
     }
     It 'keeps local cleanup and remote collection paths distinct' {
         $config=Get-BrainTraceEnvironmentConfig DEV $repo;$web=Get-BrainTraceNode $config vsmobwebdev05

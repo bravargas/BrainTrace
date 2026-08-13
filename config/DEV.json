@@ -2,9 +2,9 @@
   "Environment": "DEV",
   "Controller": "vscorappdev01",
   "Aggregator": "vsmobappdev03",
-  "WorkerRoot": "D:\\BrainTrace",
-  "StagingRoot": "D:\\BrainTrace\\Staging",
-  "StagingRootUNC": "\\\\vsmobappdev03\\d$\\BrainTrace\\Staging",
+  "WorkerRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace",
+  "StagingRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace\\Staging",
+  "StagingRootUNC": "\\\\vsmobappdev03\\d$\\FiservSoftware\\PowerShell\\BrainTrace\\Staging",
   "TimeoutSeconds": 180,
   "PollSeconds": 5,
   "StopOrder": ["AppPools", "Services", "IIS"],
@@ -12,32 +12,32 @@
   "BundleDestination": null,
   "Nodes": [
     {
-      "Name": "vscorappdev01", "Roles": ["TP"], "CommandAccess": "Direct", "CommandRoot": "D:\\BrainTrace", "CollectBy": "vscorappdev01",
+      "Name": "vscorappdev01", "Roles": ["TP"], "CommandAccess": "Direct", "CommandRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace", "CollectBy": "vscorappdev01",
       "Components": { "Services": [], "AppPools": ["StandardBankingService"], "ManageIIS": false },
       "Logs": [{ "Id": "SBILogs", "LocalPath": "D:\\Logfiles\\Mobile\\SBILogs\\4.5", "UNCPath": "\\\\vscorappdev01\\d$\\Logfiles\\Mobile\\SBILogs\\4.5" }]
     },
     {
-      "Name": "vscorappdev02", "Roles": ["TP"], "CommandAccess": "Direct", "CommandRoot": "\\\\vscorappdev02\\d$\\BrainTrace", "CollectBy": "vscorappdev01",
+      "Name": "vscorappdev02", "Roles": ["TP"], "CommandAccess": "Direct", "CommandRoot": "\\\\vscorappdev02\\d$\\FiservSoftware\\PowerShell\\BrainTrace", "CollectBy": "vscorappdev01",
       "Components": { "Services": [], "AppPools": ["StandardBankingService"], "ManageIIS": false },
       "Logs": [{ "Id": "SBILogs", "LocalPath": "D:\\Logfiles\\Mobile\\SBILogs\\4.5", "UNCPath": "\\\\vscorappdev02\\d$\\Logfiles\\Mobile\\SBILogs\\4.5" }]
     },
     {
-      "Name": "vsmobappdev03", "Roles": ["APP"], "CommandAccess": "Direct", "CommandRoot": "\\\\vsmobappdev03\\d$\\BrainTrace", "CollectBy": "vscorappdev01",
+      "Name": "vsmobappdev03", "Roles": ["APP"], "CommandAccess": "Direct", "CommandRoot": "\\\\vsmobappdev03\\d$\\FiservSoftware\\PowerShell\\BrainTrace", "CollectBy": "vscorappdev01",
       "Components": { "Services": ["Mobiliti"], "AppPools": [], "ManageIIS": true },
       "Logs": [{ "Id": "MobilitiLogs", "LocalPath": "D:\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs", "UNCPath": "\\\\vsmobappdev03\\d$\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs" }]
     },
     {
-      "Name": "vsmobappdev04", "Roles": ["APP"], "CommandAccess": "Direct", "CommandRoot": "\\\\vsmobappdev04\\d$\\BrainTrace", "CollectBy": "vscorappdev01",
+      "Name": "vsmobappdev04", "Roles": ["APP"], "CommandAccess": "Direct", "CommandRoot": "\\\\vsmobappdev04\\d$\\FiservSoftware\\PowerShell\\BrainTrace", "CollectBy": "vscorappdev01",
       "Components": { "Services": ["Mobiliti"], "AppPools": [], "ManageIIS": true },
       "Logs": [{ "Id": "MobilitiLogs", "LocalPath": "D:\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs", "UNCPath": "\\\\vsmobappdev04\\d$\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs" }]
     },
     {
-      "Name": "vsmobwebdev05", "Roles": ["WEB"], "CommandAccess": "Via", "CommandVia": "vsmobappdev03", "CommandRoot": "\\\\vsmobwebdev05\\d$\\BrainTrace", "CollectBy": "vsmobappdev03",
+      "Name": "vsmobwebdev05", "Roles": ["WEB"], "CommandAccess": "Via", "CommandVia": "vsmobappdev03", "CommandRoot": "\\\\vsmobwebdev05\\d$\\FiservSoftware\\PowerShell\\BrainTrace", "CollectBy": "vsmobappdev03",
       "Components": { "Services": [], "AppPools": [], "ManageIIS": true },
       "Logs": [{ "Id": "MobilitiLogs", "LocalPath": "D:\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs", "UNCPath": "\\\\vsmobwebdev05\\d$\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs" }]
     },
     {
-      "Name": "vsmobwebdev06", "Roles": ["WEB"], "CommandAccess": "Via", "CommandVia": "vsmobappdev03", "CommandRoot": "\\\\vsmobwebdev06\\d$\\BrainTrace", "CollectBy": "vsmobappdev03",
+      "Name": "vsmobwebdev06", "Roles": ["WEB"], "CommandAccess": "Via", "CommandVia": "vsmobappdev03", "CommandRoot": "\\\\vsmobwebdev06\\d$\\FiservSoftware\\PowerShell\\BrainTrace", "CollectBy": "vsmobappdev03",
       "Components": { "Services": [], "AppPools": [], "ManageIIS": true },
       "Logs": [{ "Id": "MobilitiLogs", "LocalPath": "D:\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs", "UNCPath": "\\\\vsmobwebdev06\\d$\\Program File\\Fiserv\\Mobiliti\\MTS Platform\\Logs" }]
     }

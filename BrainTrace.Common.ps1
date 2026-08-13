@@ -14,7 +14,11 @@ function Write-BrainTraceJsonAtomic {
     $temporary=Join-Path $directory ((Split-Path -Leaf $Path)+'.'+[guid]::NewGuid().ToString('N')+'.tmp')
     $encoding=New-Object Text.UTF8Encoding($false)
     [IO.File]::WriteAllText($temporary,($Value|ConvertTo-Json -Depth 20),$encoding)
-    [IO.File]::Move($temporary,$Path)
+    if(Test-Path -LiteralPath $Path){
+        Move-Item -LiteralPath $temporary -Destination $Path -Force
+    }else{
+        [IO.File]::Move($temporary,$Path)
+    }
 }
 
 function Get-BrainTraceProperty {

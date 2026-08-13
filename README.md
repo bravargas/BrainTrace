@@ -2,6 +2,8 @@
 
 BrainTrace is a small Windows PowerShell 5.1 tool for preparing a troubleshooting environment and collecting its logs. It uses JSON files over SMB and supports direct command access or one explicit relay hop.
 
+Notable changes are maintained in [`CHANGELOG.md`](CHANGELOG.md).
+
 The initial real configuration is [`config/DEV.json`](config/DEV.json). It contains the supplied DEV nodes, Mobiliti service name, IIS flag, StandardBankingService App Pool, local cleanup paths, remote UNC collection paths, Controller, relay/collector, and Aggregator. The final ZIP destination is intentionally `null` because no real destination was provided.
 
 ## Safety model
@@ -35,12 +37,12 @@ Run locally on each server from a reviewed copy of this repository. For example:
 .\Install-Worker.ps1 -Environment DEV -Node vsmobappdev03 -CreateScheduledTask
 ```
 
-Use the physical server name corresponding to each installation. The default installs under `D:\BrainTrace`. `-WhatIf` previews installation. The optional task defaults to `SYSTEM`; use `-TaskUser` only with an already provisioned service identity. The installer never asks for or stores credentials.
+Use the physical server name corresponding to each installation. The default installs under `D:\FiservSoftware\PowerShell\BrainTrace`. `-WhatIf` previews installation. The optional task defaults to `SYSTEM`; use `-TaskUser` only with an already provisioned service identity. The installer never asks for or stores credentials.
 
 Manual Worker execution:
 
 ```powershell
-D:\BrainTrace\Worker.ps1
+D:\FiservSoftware\PowerShell\BrainTrace\Worker.ps1
 ```
 
 ## Real workflows
@@ -61,7 +63,7 @@ Do not run these non-DryRun commands until the operational prerequisites below a
 - STOP/START ordering in DEV;
 - SMB and administrative-share permissions for Controller, relay/collector, and Aggregator identities;
 - Scheduled Task identity on each server;
-- whether `D:\BrainTrace` is deployed and shared/reachable as represented by each `CommandRoot`;
+- whether `D:\FiservSoftware\PowerShell\BrainTrace` is deployed and reachable as represented by each `CommandRoot`;
 - acceptable timeout and one-minute Worker polling interval.
 
 ## MVP limitations

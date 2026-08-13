@@ -2,9 +2,9 @@
   "Environment": "QA_EXAMPLE",
   "Controller": "QA-TP01",
   "Aggregator": "QA-APP01",
-  "WorkerRoot": "D:\\BrainTrace",
-  "StagingRoot": "D:\\BrainTrace\\Staging",
-  "StagingRootUNC": "\\\\QA-APP01\\d$\\BrainTrace\\Staging",
+  "WorkerRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace",
+  "StagingRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace\\Staging",
+  "StagingRootUNC": "\\\\QA-APP01\\d$\\FiservSoftware\\PowerShell\\BrainTrace\\Staging",
   "TimeoutSeconds": 180,
   "PollSeconds": 5,
   "StopOrder": ["AppPools", "Services", "IIS"],
@@ -12,12 +12,12 @@
   "BundleDestination": null,
   "Nodes": [
     {
-      "Name": "QA-TP01", "Roles": ["TP"], "CommandAccess": "Direct", "CommandRoot": "D:\\BrainTrace", "CollectBy": "QA-TP01",
+      "Name": "QA-TP01", "Roles": ["TP"], "CommandAccess": "Direct", "CommandRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace", "CollectBy": "QA-TP01",
       "Components": { "Services": [], "AppPools": ["ReplaceMe"], "ManageIIS": false },
       "Logs": [{ "Id": "ReplaceMe", "LocalPath": "D:\\ReplaceMe", "UNCPath": "\\\\QA-TP01\\d$\\ReplaceMe" }]
     },
     {
-      "Name": "QA-APP01", "Roles": ["APP", "WEB"], "CommandAccess": "Direct", "CommandRoot": "\\\\QA-APP01\\d$\\BrainTrace", "CollectBy": "QA-TP01",
+      "Name": "QA-APP01", "Roles": ["APP", "WEB"], "CommandAccess": "Direct", "CommandRoot": "\\\\QA-APP01\\d$\\FiservSoftware\\PowerShell\\BrainTrace", "CollectBy": "QA-TP01",
       "Components": { "Services": ["ReplaceMe"], "AppPools": [], "ManageIIS": true },
       "Logs": [{ "Id": "ReplaceMe", "LocalPath": "D:\\ReplaceMe", "UNCPath": "\\\\QA-APP01\\d$\\ReplaceMe" }]
     }

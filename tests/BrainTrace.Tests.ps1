@@ -16,6 +16,9 @@ Describe 'BrainTrace MVP configuration' {
         $config.Operations.Hub|Should -BeExactly 'vsmobwebdev05'
         $config.Operations.Relay|Should -BeExactly 'vsmobappdev03'
         $config.Operations.Executor|Should -BeExactly 'vscorappdev01'
+        $config.Operations.HubRootUNC|Should -BeExactly '\\vsmobwebdev05\FiservSoftware$\PowerShell\BrainTrace\OperationsHub'
+        (Get-BrainTraceNode $config vsmobwebdev05).CommandRoot|Should -BeExactly '\\vsmobwebdev05\FiservSoftware$\PowerShell\BrainTrace'
+        (Get-BrainTraceNode $config vsmobwebdev06).CommandRoot|Should -BeExactly '\\vsmobwebdev06\FiservSoftware$\PowerShell\BrainTrace'
     }
     It 'keeps local cleanup and remote collection paths distinct' {
         $config=Get-BrainTraceEnvironmentConfig DEV $repo;$web=Get-BrainTraceNode $config vsmobwebdev05

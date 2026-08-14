@@ -23,7 +23,7 @@
     "Relay": "vsmobappdev03",
     "Executor": "vscorappdev01",
     "HubRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsHub",
-    "HubRootUNC": "\\\\vsmobwebdev05\\d$\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsHub",
+    "HubRootUNC": "\\\\vsmobwebdev05\\FiservSoftware$\\PowerShell\\BrainTrace\\OperationsHub",
     "RelayRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsRelay",
     "RelayRootUNC": "\\\\vsmobappdev03\\d$\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsRelay",
     "RequestTimeoutMinutes": 30
@@ -138,7 +138,7 @@
       ],
       "CommandAccess": "Via",
       "CommandVia": "vsmobappdev03",
-      "CommandRoot": "\\\\vsmobwebdev05\\d$\\FiservSoftware\\PowerShell\\BrainTrace",
+      "CommandRoot": "\\\\vsmobwebdev05\\FiservSoftware$\\PowerShell\\BrainTrace",
       "CollectBy": "vsmobappdev03",
       "Components": {
         "Services": [],
@@ -162,7 +162,7 @@
       ],
       "CommandAccess": "Via",
       "CommandVia": "vsmobappdev03",
-      "CommandRoot": "\\\\vsmobwebdev06\\d$\\FiservSoftware\\PowerShell\\BrainTrace",
+      "CommandRoot": "\\\\vsmobwebdev06\\FiservSoftware$\\PowerShell\\BrainTrace",
       "CollectBy": "vsmobappdev03",
       "Components": {
         "Services": [],

@@ -50,7 +50,8 @@ if($null-eq(Get-BrainTraceProperty $config Operations $null)){throw 'Operations 
 if($localNode.Name-ine$config.Operations.Hub){throw "Operations Portal may run only on configured hub '$($config.Operations.Hub)'."}
 
 while($true){
-    Write-Host "`nBrainTrace Operations - DEV (Web1)" -ForegroundColor Cyan
+    $alias=if($null-ne$localNode.PSObject.Properties['Alias']){[string]$localNode.Alias}else{[string]$localNode.Name}
+    Write-Host "`nBrainTrace Operations - $($config.Environment) ($alias)" -ForegroundColor Cyan
     Write-Host '1  Diagnose environment'
     Write-Host '2  Test Workers and collection access'
     Write-Host '3  Collect logs'

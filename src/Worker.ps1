@@ -217,12 +217,15 @@ $localNode=Get-BrainTraceNode $config ([string]$installed.LocalNode)
 if($null-eq$localNode){throw "LocalNode '$($installed.LocalNode)' is not in configuration."}
 foreach($folder in @('Commands','Status','Archive','Logs')){$path=Join-Path $Root $folder;if(-not(Test-Path -LiteralPath $path)){New-Item -ItemType Directory -Path $path -Force|Out-Null}}
 $taskState='UNKNOWN';$taskLastResult=$null;$taskNextRunUtc=$null
-try{
-    $task=Get-ScheduledTask -TaskName BrainTrace-Worker -ErrorAction Stop
-    $taskInfo=Get-ScheduledTaskInfo -TaskName BrainTrace-Worker -ErrorAction Stop
-    $taskState=[string]$task.State;$taskLastResult=[int]$taskInfo.LastTaskResult
-    if($taskInfo.NextRunTime-ne[datetime]::MinValue){$taskNextRunUtc=$taskInfo.NextRunTime.ToUniversalTime().ToString('o')}
-}catch{$taskState='NOT FOUND'}
+if([bool](Get-BrainTraceProperty $config Simulation $false)){$taskState='SIMULATED';$taskLastResult=0}
+else{
+    try{
+        $task=Get-ScheduledTask -TaskName BrainTrace-Worker -ErrorAction Stop
+        $taskInfo=Get-ScheduledTaskInfo -TaskName BrainTrace-Worker -ErrorAction Stop
+        $taskState=[string]$task.State;$taskLastResult=[int]$taskInfo.LastTaskResult
+        if($taskInfo.NextRunTime-ne[datetime]::MinValue){$taskNextRunUtc=$taskInfo.NextRunTime.ToUniversalTime().ToString('o')}
+    }catch{$taskState='NOT FOUND'}
+}
 $heartbeat=[ordered]@{
     TimestampUtc=[datetime]::UtcNow.ToString('o')
     Node=$localNode.Name

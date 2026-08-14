@@ -23,6 +23,7 @@ function Write-BrainTraceJsonAtomic {
 
 function Get-BrainTraceProperty {
     param($Object,[string]$Name,$Default=$null)
+    if($Object-is[Collections.IDictionary]-and$Object.Contains($Name)){return $Object[$Name]}
     if ($null-ne$Object -and $null-ne$Object.PSObject.Properties[$Name]) { return $Object.$Name }
     return $Default
 }
@@ -30,6 +31,7 @@ function Get-BrainTraceProperty {
 function Test-BrainTraceEnvironment {
     param([Parameter(Mandatory=$true)]$Config)
     if ([string]::IsNullOrWhiteSpace([string]$Config.Environment)) { throw 'Environment is required.' }
+    $isSimulation=[bool](Get-BrainTraceProperty $Config Simulation $false)
     $nodes=@($Config.Nodes);if($nodes.Count-eq0){throw 'At least one node is required.'}
     $seen=@{}
     foreach($node in $nodes){
@@ -40,7 +42,9 @@ function Test-BrainTraceEnvironment {
         foreach($log in @($node.Logs)){
             if([string]::IsNullOrWhiteSpace([string]$log.Id)){throw "Log Id is required on '$($node.Name)'."}
             if(-not[IO.Path]::IsPathRooted([string]$log.LocalPath)){throw "LocalPath must be absolute on '$($node.Name)'."}
-            if(-not([string]$log.UNCPath).StartsWith('\\')){throw "UNCPath must be UNC on '$($node.Name)'."}
+            if($isSimulation){
+                if(-not[IO.Path]::IsPathRooted([string]$log.UNCPath)){throw "Simulation UNCPath must be absolute on '$($node.Name)'."}
+            }elseif(-not([string]$log.UNCPath).StartsWith('\\')){throw "UNCPath must be UNC on '$($node.Name)'."}
             $pathKey=([IO.Path]::GetFullPath([string]$log.LocalPath)).TrimEnd('\').ToUpperInvariant()
             if($paths.ContainsKey($pathKey)){throw "Duplicate local log path on '$($node.Name)': $($log.LocalPath)"};$paths[$pathKey]=$true
         }
@@ -71,7 +75,9 @@ function Test-BrainTraceEnvironment {
         }
         foreach($property in @('HubRootUNC','RelayRootUNC')){
             $path=[string](Get-BrainTraceProperty $operations $property '')
-            if(-not$path.StartsWith('\\')){throw "Operations.$property must be a UNC path."}
+            if($isSimulation){
+                if([string]::IsNullOrWhiteSpace($path)-or-not[IO.Path]::IsPathRooted($path)){throw "Operations.$property must be an absolute simulation path."}
+            }elseif(-not$path.StartsWith('\\')){throw "Operations.$property must be a UNC path."}
         }
     }
     return $true

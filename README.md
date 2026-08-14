@@ -44,6 +44,34 @@ For a read-only central dashboard that does not depend on Workers processing com
 
 On TP1, the installed `Diagnose-DEV.cmd` launcher opens the same dashboard with no parameters and pauses so the results remain visible.
 
+## Laptop LocalLab
+
+`LocalLab.cmd` creates a six-node BrainTrace simulation entirely inside the repository's ignored `LocalLab` directory. It runs the real Worker, one-hop WEB relay, operations monitors, Controller CLI, and Web1 portal against isolated local folders. It does not create Scheduled Tasks, shares, services, App Pools, or IIS changes and does not contact DEV.
+
+Double-click `LocalLab.cmd`, then use the menu:
+
+```text
+1  Initialize or reset the six-node lab
+2  Diagnose simulated environment
+3  Test Workers, relay, and collection access
+4  Open Web1 Operations portal
+5  Preview Prepare (DryRun)
+6  Open LocalLab folder
+```
+
+Initialize once, then option 3 performs the fastest full health test. Option 4 exercises the same file-only `Web1 -> App1 -> TP1 -> App1 -> Web1` route used in DEV, normally completing in a few seconds. The portal can also test local-only collection and Prepare behavior; every configured log path remains under `LocalLab`.
+
+The actions can also run without the menu:
+
+```powershell
+.\scripts\LocalLab.ps1 -Action Initialize
+.\scripts\LocalLab.ps1 -Action Diagnose
+.\scripts\LocalLab.ps1 -Action Test
+.\scripts\LocalLab.ps1 -Action Portal
+```
+
+Reinitializing removes only the fixed repository `LocalLab` directory and recreates sample data. The simulation validates orchestration and file behavior but cannot prove domain machine-account, SMB, firewall, or real Task Scheduler permissions; those still require a short DEV smoke test.
+
 ## Web1 operations center
 
 Web1 is the operator-facing hub while TP1 remains the safety-enforcing execution Controller. Cross-tier communication is file-only:

@@ -12,3 +12,4 @@
 # PowerShell and test artifacts
 *.tmp
 TestResults/
+/LocalLab/

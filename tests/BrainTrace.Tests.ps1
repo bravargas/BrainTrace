@@ -5,6 +5,22 @@ BeforeAll {
 }
 
 Describe 'BrainTrace MVP configuration' {
+    It 'allows absolute local transport paths only in explicit simulation configurations' {
+        $root=Join-Path $TestDrive 'simulation'
+        $config=[ordered]@{
+            Environment='LOCAL';Simulation=$true;Controller='TP1';Aggregator='TP1';WorkerRoot=$root
+            StagingRoot=(Join-Path $root 'Staging');StagingRootUNC=(Join-Path $root 'Staging')
+            TimeoutSeconds=5;PollSeconds=1;StopOrder=@('Services');StartOrder=@('Services');BundleDestination=$null
+            Operations=[ordered]@{Hub='TP1';Relay='TP1';Executor='TP1';HubRoot=(Join-Path $root 'Hub');HubRootUNC=(Join-Path $root 'Hub');RelayRoot=(Join-Path $root 'Relay');RelayRootUNC=(Join-Path $root 'Relay');RequestTimeoutMinutes=5}
+            Nodes=@([ordered]@{
+                Name='TP1';Alias='TP1';DeploymentManager='TP1';Roles=@('TP');CommandAccess='Direct';CommandRoot=$root;CollectBy='TP1'
+                Components=[ordered]@{Services=@();AppPools=@();ManageIIS=$false};Logs=@([ordered]@{Id='Logs';LocalPath=(Join-Path $root 'Logs');UNCPath=(Join-Path $root 'Logs')})
+            })
+        }
+        {Test-BrainTraceEnvironment $config}|Should -Not -Throw
+        $config.Simulation=$false
+        {Test-BrainTraceEnvironment $config}|Should -Throw '*UNCPath must be UNC*'
+    }
     It 'validates the real DEV topology' {
         $config=Get-BrainTraceEnvironmentConfig DEV $repo
         $config.Nodes.Count|Should -Be 6

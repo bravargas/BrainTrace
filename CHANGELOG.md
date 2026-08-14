@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bra
 
 ### Added
 
+- Laptop LocalLab with six isolated simulated nodes, concurrent Worker/monitor agents, a one-click menu, Web1 operations portal, local collection paths, and no dependency on Scheduled Tasks or SMB.
 - Small Windows PowerShell 5.1 BrainTrace MVP with `Prepare`, `Collect`, and `DryRun` workflows.
 - Real six-node DEV configuration using `vscorappdev01` as Controller and `vsmobappdev03` as relay, collector, and Aggregator for the WEB tier.
 - Worker actions for STOP, CLEAN, START, COLLECT, and BUNDLE using trusted installed configuration.

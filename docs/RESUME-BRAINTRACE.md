@@ -6,6 +6,8 @@ Last updated: 2026-08-14
 
 Testing paused because the DEV servers entered maintenance.
 
+While DEV is unavailable, a laptop-only `LocalLab.cmd` was added. It creates TP1, TP2, App1, App2, Web1, and Web2 as isolated local roots and runs the real Workers and operations monitors concurrently without Scheduled Tasks or SMB. Local Diagnose, Worker/collection Test, Web1 portal Diagnose, Collect with ZIP, and live sandbox-only Prepare have all completed successfully. Use menu option 1 to initialize and option 3 for the fastest full preflight.
+
 The file-only operations route has been proven end to end:
 
 ```text

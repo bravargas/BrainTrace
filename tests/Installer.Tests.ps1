@@ -6,6 +6,16 @@ BeforeAll {
 }
 
 Describe 'Worker installer support' {
+    It 'provides a no-server six-node LocalLab launcher' {
+        Test-Path (Join-Path $repo 'LocalLab.cmd')|Should -BeTrue
+        Test-Path (Join-Path $scripts 'LocalLab.ps1')|Should -BeTrue
+        Test-Path (Join-Path $scripts 'LocalLab-Agent.ps1')|Should -BeTrue
+        $lab=Get-Content (Join-Path $scripts 'LocalLab.ps1') -Raw
+        foreach($node in @('TP1','TP2','App1','App2','Web1','Web2')){$lab|Should -Match ([regex]::Escape($node))}
+        $lab|Should -Match "Environment='LOCAL'"
+        $lab|Should -Match 'Simulation=\$true'
+        $lab|Should -Not -Match 'Register-ScheduledTask|schtasks\.exe'
+    }
     It 'provides parameter-free DEV launchers and copy-paste commands' {
         Test-Path (Join-Path $scripts 'Deploy-DEV.ps1')|Should -BeTrue
         Test-Path (Join-Path $repo 'Deploy-DEV.cmd')|Should -BeTrue

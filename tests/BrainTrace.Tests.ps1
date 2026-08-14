@@ -18,6 +18,9 @@ Describe 'BrainTrace MVP configuration' {
         $config.Operations.Executor|Should -BeExactly 'vscorappdev01'
         $config.Operations.HubRootUNC|Should -BeExactly '\\vsmobwebdev05\FiservSoftware$\PowerShell\BrainTrace\OperationsHub'
         $config.Operations.RelayRootUNC|Should -BeExactly '\\vsmobappdev03\FiservSoftware$\PowerShell\BrainTrace\OperationsRelay'
+        (Get-BrainTraceNode $config vscorappdev02).CommandRoot|Should -BeExactly '\\vscorappdev02\FiservSoftware$\PowerShell\BrainTrace'
+        (Get-BrainTraceNode $config vsmobappdev03).CommandRoot|Should -BeExactly '\\vsmobappdev03\FiservSoftware$\PowerShell\BrainTrace'
+        (Get-BrainTraceNode $config vsmobappdev04).CommandRoot|Should -BeExactly '\\vsmobappdev04\FiservSoftware$\PowerShell\BrainTrace'
         (Get-BrainTraceNode $config vsmobwebdev05).CommandRoot|Should -BeExactly '\\vsmobwebdev05\FiservSoftware$\PowerShell\BrainTrace'
         (Get-BrainTraceNode $config vsmobwebdev06).CommandRoot|Should -BeExactly '\\vsmobwebdev06\FiservSoftware$\PowerShell\BrainTrace'
     }

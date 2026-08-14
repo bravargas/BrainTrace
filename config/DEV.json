@@ -4,7 +4,7 @@
   "Aggregator": "vsmobappdev03",
   "WorkerRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace",
   "StagingRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace\\Staging",
-  "StagingRootUNC": "\\\\vsmobappdev03\\d$\\FiservSoftware\\PowerShell\\BrainTrace\\Staging",
+  "StagingRootUNC": "\\\\vsmobappdev03\\FiservSoftware$\\PowerShell\\BrainTrace\\Staging",
   "TimeoutSeconds": 180,
   "PollSeconds": 5,
   "StopOrder": [
@@ -62,7 +62,7 @@
         "TP"
       ],
       "CommandAccess": "Direct",
-      "CommandRoot": "\\\\vscorappdev02\\d$\\FiservSoftware\\PowerShell\\BrainTrace",
+      "CommandRoot": "\\\\vscorappdev02\\FiservSoftware$\\PowerShell\\BrainTrace",
       "CollectBy": "vscorappdev01",
       "Components": {
         "Services": [],
@@ -87,7 +87,7 @@
         "APP"
       ],
       "CommandAccess": "Direct",
-      "CommandRoot": "\\\\vsmobappdev03\\d$\\FiservSoftware\\PowerShell\\BrainTrace",
+      "CommandRoot": "\\\\vsmobappdev03\\FiservSoftware$\\PowerShell\\BrainTrace",
       "CollectBy": "vscorappdev01",
       "Components": {
         "Services": [
@@ -112,7 +112,7 @@
         "APP"
       ],
       "CommandAccess": "Direct",
-      "CommandRoot": "\\\\vsmobappdev04\\d$\\FiservSoftware\\PowerShell\\BrainTrace",
+      "CommandRoot": "\\\\vsmobappdev04\\FiservSoftware$\\PowerShell\\BrainTrace",
       "CollectBy": "vscorappdev01",
       "Components": {
         "Services": [

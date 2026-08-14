@@ -35,6 +35,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bra
 
 ### Fixed
 
+- Replaced TP2 and APP-tier command/staging administrative-share paths with `FiservSoftware$`, allowing portal operations executed as the TP1 machine account to inspect and command nodes through files.
 - Corrected the TP1 operations executor to use named parameter splatting, preventing `-Environment` from being treated as an invalid positional argument on Windows PowerShell 5.1.
 - Replaced WEB and operations-relay administrative-share paths with consistent dedicated `FiservSoftware$` shares so the App1 and TP1 machine accounts can relay files without remote administrative access.
 - Deferred `$PSScriptRoot`-based defaults until after parameter binding so Windows PowerShell 5.1 Scheduled Tasks can start Worker, monitor, portal, and smoke-test scripts instead of exiting with result code 1 before diagnostic logging begins.

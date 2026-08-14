@@ -16,6 +16,7 @@ $sourceRoot=Join-Path $repositoryRoot 'src'
 $config=Get-BrainTraceEnvironmentConfig $Environment $repositoryRoot
 $nodeConfig=Get-BrainTraceNode $config $Node
 if($null-eq$nodeConfig){throw "Node '$Node' is not in environment '$($config.Environment)'."}
+if($CreateScheduledTask-and$nodeConfig.Name-ine$env:COMPUTERNAME){throw "Scheduled Task creation must run locally on '$($nodeConfig.Name)'. BrainTrace does not execute or manage tasks between servers."}
 
 if($PSCmdlet.ShouldProcess($Destination,"Install BrainTrace Worker for $Node")){
     foreach($folder in @($Destination,(Join-Path $Destination 'Commands'),(Join-Path $Destination 'Status'),(Join-Path $Destination 'Archive'),(Join-Path $Destination 'Logs'))){
@@ -25,6 +26,7 @@ if($PSCmdlet.ShouldProcess($Destination,"Install BrainTrace Worker for $Node")){
         'Worker.ps1'=(Join-Path $sourceRoot 'Worker.ps1')
         'BrainTrace.Common.ps1'=(Join-Path $sourceRoot 'BrainTrace.Common.ps1')
         'Test-Worker.ps1'=(Join-Path $PSScriptRoot 'Test-Worker.ps1')
+        'Operations-Monitor.ps1'=(Join-Path $sourceRoot 'Operations-Monitor.ps1')
     }
     foreach($fileName in $runtimeFiles.Keys){
         $sourcePath=[IO.Path]::GetFullPath($runtimeFiles[$fileName])
@@ -45,6 +47,15 @@ if($PSCmdlet.ShouldProcess($Destination,"Install BrainTrace Worker for $Node")){
                 Copy-Item -LiteralPath $controllerSource -Destination $controllerDestination -Force
             }
         }
+    }
+    if($null-ne(Get-BrainTraceProperty $config Operations $null)-and$nodeConfig.Name-ieq$config.Operations.Hub){
+        $portalFiles=[ordered]@{
+            'Operations-Portal.ps1'=(Join-Path $sourceRoot 'Operations-Portal.ps1')
+            'Operations-DEV.cmd'=(Join-Path $repositoryRoot 'Operations-DEV.cmd')
+        }
+        foreach($fileName in $portalFiles.Keys){Copy-Item -LiteralPath $portalFiles[$fileName] -Destination (Join-Path $Destination $fileName) -Force}
+    }
+    if($nodeConfig.Name-ieq$config.Controller){
         $configDestination=Join-Path $Destination 'config'
         if(-not(Test-Path -LiteralPath $configDestination)){New-Item -ItemType Directory -Path $configDestination -Force|Out-Null}
         $environmentSource=if(Test-Path -LiteralPath $Environment -PathType Leaf){(Resolve-Path $Environment).Path}else{Join-Path (Join-Path $repositoryRoot 'config') ($Environment+'.json')}
@@ -64,7 +75,12 @@ if($CreateScheduledTask){
         $trigger=New-ScheduledTaskTrigger -Once -At ([datetime]::Now.AddMinutes(1)) -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes) -RepetitionDuration (New-TimeSpan -Days 3650)
         $principal=New-ScheduledTaskPrincipal -UserId $TaskUser -LogonType ServiceAccount -RunLevel Highest
         Register-ScheduledTask -TaskName 'BrainTrace-Worker' -Action $action -Trigger $trigger -Principal $principal -Description "BrainTrace Worker for $($config.Environment)/$Node" -Force|Out-Null
+        $operations=Get-BrainTraceProperty $config Operations $null
+        if($null-ne$operations-and$nodeConfig.Name-in@([string]$operations.Relay,[string]$operations.Executor)){
+            $monitorAction=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $Destination 'Operations-Monitor.ps1')+'"')
+            Register-ScheduledTask -TaskName 'BrainTrace-Operations-Monitor' -Action $monitorAction -Trigger $trigger -Principal $principal -Description "BrainTrace file relay/executor monitor for $($config.Environment)/$Node" -Force|Out-Null
+        }
     }
 }
 
-[pscustomobject]@{Environment=$config.Environment;Node=$nodeConfig.Name;Destination=$Destination;ScheduledTask=[bool]$CreateScheduledTask}
+[pscustomobject]@{Environment=$config.Environment;Node=$nodeConfig.Name;Destination=$Destination;ScheduledTask=[bool]$CreateScheduledTask;OperationsMonitor=([bool]$CreateScheduledTask-and$null-ne(Get-BrainTraceProperty $config Operations $null)-and$nodeConfig.Name-in@([string]$config.Operations.Relay,[string]$config.Operations.Executor))}

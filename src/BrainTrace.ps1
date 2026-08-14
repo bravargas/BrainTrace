@@ -136,7 +136,7 @@ function Get-BrainTraceDiagnosticJson {
 }
 
 function Get-BrainTraceTaskDiagnostic {
-    param($Node)
+    param($Node,$ReportedTask)
     if($Node.Name-ieq$env:COMPUTERNAME){
         try{
             $task=Get-ScheduledTask -TaskName BrainTrace-Worker -ErrorAction Stop
@@ -144,12 +144,11 @@ function Get-BrainTraceTaskDiagnostic {
             return [pscustomobject]@{State=[string]$task.State;LastResult=[string]$info.LastTaskResult;Detail="Last: $($info.LastRunTime); Next: $($info.NextRunTime)"}
         }catch{return [pscustomobject]@{State='MISSING';LastResult='-';Detail=$_.Exception.Message}}
     }
-    try{
-        $output=@(& schtasks.exe /Query /S $Node.Name /TN BrainTrace-Worker /FO CSV /NH 2>&1)
-        if($LASTEXITCODE-ne0){return [pscustomobject]@{State='UNAVAILABLE';LastResult='-';Detail=($output-join' ')}}
-        $row=($output|Select-Object -First 1|ConvertFrom-Csv -Header Computer,Task,NextRun,State,LogonMode)
-        return [pscustomobject]@{State=[string]$row.State;LastResult='remote';Detail="Next: $($row.NextRun)"}
-    }catch{return [pscustomobject]@{State='UNAVAILABLE';LastResult='-';Detail=$_.Exception.Message}}
+    if($null-eq$ReportedTask){return [pscustomobject]@{State='NO REPORT';LastResult='-';Detail='Remote Scheduler access is intentionally not attempted; no file heartbeat is available.'}}
+    $state=[string](Get-BrainTraceProperty $ReportedTask TaskState 'UNKNOWN')
+    $lastResult=Get-BrainTraceProperty $ReportedTask TaskLastResult $null
+    $nextRun=Get-BrainTraceProperty $ReportedTask TaskNextRunUtc $null
+    return [pscustomobject]@{State=$state;LastResult=if($null-eq$lastResult){'-'}else{[string]$lastResult};Detail=if($null-eq$nextRun){'Reported locally by Worker heartbeat.'}else{"Next: $nextRun"}}
 }
 
 function Invoke-BrainTraceEnvironmentDiagnosis {
@@ -159,7 +158,7 @@ function Invoke-BrainTraceEnvironmentDiagnosis {
     $rows=@();$details=@()
     foreach($node in @($Config.Nodes)){
         $alias=if($null-ne$node.PSObject.Properties['Alias']){[string]$node.Alias}else{[string]$node.Name}
-        $root=[string]$node.CommandRoot;$files='NO ACCESS';$heartbeat='-';$queue='-';$fatal='-'
+        $root=[string]$node.CommandRoot;$files='NO ACCESS';$heartbeat='-';$queue='-';$fatal='-';$reportedTask=$null
         try{
             if($node.CommandAccess-eq'Via'){
                 $relay=Get-BrainTraceNode $Config ([string]$node.CommandVia)
@@ -170,7 +169,10 @@ function Invoke-BrainTraceEnvironmentDiagnosis {
                 }else{
                     $mirrorAge=[math]::Round(([datetime]::UtcNow-([datetime]$mirror.TimestampUtc).ToUniversalTime()).TotalMinutes,1)
                     $files=[string]$mirror.Files;$queue=if($null-ne$mirror.Queued){[string]$mirror.Queued}else{'-'}
-                    if($null-ne$mirror.WorkerHeartbeatUtc){$heartbeat=[string]([math]::Round(([datetime]::UtcNow-([datetime]$mirror.WorkerHeartbeatUtc).ToUniversalTime()).TotalMinutes,1))+' min'}else{$heartbeat='none'}
+                    if($null-ne$mirror.WorkerHeartbeatUtc){
+                        $heartbeat=[string]([math]::Round(([datetime]::UtcNow-([datetime]$mirror.WorkerHeartbeatUtc).ToUniversalTime()).TotalMinutes,1))+' min'
+                        $reportedTask=[pscustomobject]@{TaskState=(Get-BrainTraceProperty $mirror TaskState 'UNKNOWN');TaskLastResult=(Get-BrainTraceProperty $mirror TaskLastResult $null);TaskNextRunUtc=(Get-BrainTraceProperty $mirror TaskNextRunUtc $null)}
+                    }else{$heartbeat='none'}
                     if(-not[string]::IsNullOrWhiteSpace([string]$mirror.Fatal)){$fatal='YES';$details+="$alias fatal: $([string]$mirror.Fatal)"}else{$fatal='none'}
                     if(-not[bool]$mirror.Reachable){$details+="$alias relay mirror ($mirrorAge min old): $([string]$mirror.Error)"}
                     elseif($mirrorAge-gt2){$details+="$alias relay mirror is stale: $mirrorAge minutes old."}
@@ -186,13 +188,14 @@ function Invoke-BrainTraceEnvironmentDiagnosis {
                 if($null-ne$heartbeatRecord){
                     $age=[math]::Round(([datetime]::UtcNow-([datetime]$heartbeatRecord.TimestampUtc).ToUniversalTime()).TotalMinutes,1)
                     $heartbeat="$age min"
+                    $reportedTask=$heartbeatRecord
                 }else{$heartbeat='none'}
                 $fatalRecord=Get-BrainTraceDiagnosticJson (Join-Path (Join-Path $root 'Logs') 'Worker-Fatal.jsonl')
                 if($null-ne$fatalRecord){$fatal='YES';$details+="$alias fatal: $([string]$fatalRecord.Error)"}else{$fatal='none'}
             }
         }catch{$details+="$alias filesystem: $($_.Exception.Message)"}
-        $task=Get-BrainTraceTaskDiagnostic $node
-        if($task.State-in@('MISSING','UNAVAILABLE')){$details+="$alias task: $($task.Detail)"}
+        $task=Get-BrainTraceTaskDiagnostic $node $reportedTask
+        if($task.State-in@('MISSING','NO REPORT','NOT FOUND')){$details+="$alias task: $($task.Detail)"}
         $rows+=[pscustomobject][ordered]@{Node=$alias;Computer=$node.Name;Files=$files;Task=$task.State;LastResult=$task.LastResult;Heartbeat=$heartbeat;Queued=$queue;Fatal=$fatal}
     }
     Write-Host '';$rows|Format-Table -AutoSize

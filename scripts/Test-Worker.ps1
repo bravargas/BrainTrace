@@ -1,12 +1,13 @@
 [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='High')]
 param(
-    [string]$Root=$PSScriptRoot,
+    [string]$Root,
     [switch]$KeepArtifacts,
     [switch]$LiveStopStart
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
+if([string]::IsNullOrWhiteSpace($Root)){$Root=$PSScriptRoot}
 $commonPath=Join-Path $PSScriptRoot 'BrainTrace.Common.ps1'
 if(-not(Test-Path -LiteralPath $commonPath)){ $commonPath=Join-Path (Join-Path (Split-Path -Parent $PSScriptRoot) 'src') 'BrainTrace.Common.ps1' }
 . $commonPath

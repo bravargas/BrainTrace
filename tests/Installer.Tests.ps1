@@ -14,28 +14,30 @@ Describe 'Worker installer support' {
         $commands|Should -Match ([regex]::Escape('BrainTrace.ps1 Test -Environment DEV'))
     }
 
-    It 'selects the DEV tier from the configured Controller or Aggregator' {
+    It 'selects the DEV tier from its configured deployment manager' {
         $launcher=Get-Content (Join-Path $scripts 'Deploy-DEV.ps1') -Raw
-        $launcher|Should -Match 'config\.Aggregator'
-        $launcher|Should -Match 'config\.Controller'
+        $launcher|Should -Match 'DeploymentManager'
+        $launcher|Should -Match 'TP1, App1, or Web1'
         $launcher|Should -Match "Read-Host"
     }
 
-    It 'offers a non-mutating role-based fleet deployment preview' {
-        $output=& (Join-Path $scripts 'Deploy-BrainTrace.ps1') -Environment DEV -Role WEB -WhatIf 6>&1|Out-String
+    It 'offers a non-mutating same-tier deployment preview' {
+        $output=& (Join-Path $scripts 'Deploy-BrainTrace.ps1') -Environment DEV -Manager vsmobwebdev05 -WhatIf 6>&1|Out-String
         $output|Should -Match 'vsmobwebdev05'
         $output|Should -Match 'vsmobwebdev06'
         $output|Should -Not -Match 'vsmobappdev04'
         $output|Should -Match 'Planned only'
     }
 
-    It 'keeps remote deployment topology and task identity configuration-driven' {
+    It 'keeps installation boundaries configuration-driven by same-role manager' {
         $deployment=Get-Content (Join-Path $scripts 'Deploy-BrainTrace.ps1') -Raw
         $deployment|Should -Match 'config\.Nodes'
         $deployment|Should -Match 'config\.WorkerRoot'
-        $deployment|Should -Match 'RegisterScheduledTask'
+        $deployment|Should -Match 'DeploymentManager'
+        $deployment|Should -Match 'same-tier'
         $deployment|Should -Match 'task unchanged'
-        $deployment|Should -Match "'/RU','SYSTEM'"
+        $controller=Get-Content (Join-Path $src 'BrainTrace.ps1') -Raw
+        $controller|Should -Not -Match 'schtasks'
     }
 
     It 'persists fatal Scheduled Task context errors for diagnosis' {
@@ -61,15 +63,30 @@ Describe 'Worker installer support' {
         $text=Get-Content (Join-Path $scripts 'Install-Worker.ps1') -Raw
         $text|Should -Match ([regex]::Escape("D:\FiservSoftware\PowerShell\BrainTrace"))
         $worker=Get-Content (Join-Path $src 'Worker.ps1') -Raw
-        $worker|Should -Match '\$Root = \$PSScriptRoot'
+        $worker|Should -Match 'IsNullOrWhiteSpace\(\$Root\).*\$Root=\$PSScriptRoot'
     }
     It 'installs the organized repository into the unchanged flat runtime layout' {
         $destination=Join-Path $TestDrive 'installed-controller'
         & (Join-Path $scripts 'Install-Worker.ps1') -Environment DEV -Node vscorappdev01 -Destination $destination|Out-Null
-        foreach($relativePath in @('Worker.ps1','BrainTrace.Common.ps1','Test-Worker.ps1','BrainTrace.ps1','Diagnose-DEV.cmd','NodeConfig.json','config\DEV.json')){
+        foreach($relativePath in @('Worker.ps1','BrainTrace.Common.ps1','Test-Worker.ps1','Operations-Monitor.ps1','BrainTrace.ps1','Diagnose-DEV.cmd','NodeConfig.json','config\DEV.json')){
             Test-Path (Join-Path $destination $relativePath)|Should -BeTrue
         }
         (Read-BrainTraceJson (Join-Path $destination 'NodeConfig.json')).LocalNode|Should -BeExactly 'vscorappdev01'
+    }
+    It 'starts an installed Worker without explicit Root parameters on PowerShell 5.1' {
+        $destination=Join-Path $TestDrive 'default-root-worker'
+        & (Join-Path $scripts 'Install-Worker.ps1') -Environment DEV -Node vscorappdev01 -Destination $destination|Out-Null
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $destination 'Worker.ps1') -MaxCommands 1|Out-Null
+        $LASTEXITCODE|Should -Be 0
+        $heartbeat=Read-BrainTraceJson (Join-Path (Join-Path $destination 'Status') 'Worker-Heartbeat.json')
+        $heartbeat.Node|Should -BeExactly 'vscorappdev01'
+    }
+    It 'installs the operations portal only on the configured Web1 hub' {
+        $destination=Join-Path $TestDrive 'installed-hub'
+        & (Join-Path $scripts 'Install-Worker.ps1') -Environment DEV -Node vsmobwebdev05 -Destination $destination|Out-Null
+        Test-Path (Join-Path $destination 'Operations-Portal.ps1')|Should -BeTrue
+        Test-Path (Join-Path $destination 'Operations-DEV.cmd')|Should -BeTrue
+        (Read-BrainTraceJson (Join-Path $destination 'NodeConfig.json')).LocalNode|Should -BeExactly 'vsmobwebdev05'
     }
     It 'installs the one-command smoke-test script' {
         $text=Get-Content (Join-Path $scripts 'Install-Worker.ps1') -Raw

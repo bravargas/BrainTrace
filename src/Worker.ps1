@@ -1,13 +1,15 @@
 [CmdletBinding()]
 param(
-    [string]$Root = $PSScriptRoot,
-    [string]$ConfigPath = (Join-Path $Root 'NodeConfig.json'),
+    [string]$Root,
+    [string]$ConfigPath,
     [switch]$DryRun,
     [int]$MaxCommands = 20
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
+if([string]::IsNullOrWhiteSpace($Root)){$Root=$PSScriptRoot}
+if([string]::IsNullOrWhiteSpace($ConfigPath)){$ConfigPath=Join-Path $Root 'NodeConfig.json'}
 
 trap {
     $fatalMessage = $_.Exception.Message
@@ -172,7 +174,7 @@ function Publish-BrainTraceRelayDiagnostics {
     $mirrorRoot=Join-Path (Join-Path $Root 'Status') 'Relays'
     if(-not(Test-Path -LiteralPath $mirrorRoot)){New-Item -ItemType Directory -Path $mirrorRoot -Force|Out-Null}
     foreach($target in @($Config.Nodes|Where-Object{$_.CommandAccess-eq'Via'-and$_.CommandVia-ieq$LocalNode.Name})){
-        $record=[ordered]@{TimestampUtc=[datetime]::UtcNow.ToString('o');Node=$target.Name;Reachable=$false;Files='NO ACCESS';Queued=$null;WorkerHeartbeatUtc=$null;Fatal=$null;Error=$null}
+        $record=[ordered]@{TimestampUtc=[datetime]::UtcNow.ToString('o');Node=$target.Name;Reachable=$false;Files='NO ACCESS';Queued=$null;WorkerHeartbeatUtc=$null;TaskState=$null;TaskLastResult=$null;TaskNextRunUtc=$null;Fatal=$null;Error=$null}
         try{
             $targetRoot=[string]$target.CommandRoot
             if(-not(Test-Path -LiteralPath $targetRoot -PathType Container)){throw "Cannot reach '$targetRoot'."}
@@ -182,7 +184,12 @@ function Publish-BrainTraceRelayDiagnostics {
             $commands=Join-Path $targetRoot 'Commands'
             $record.Queued=if(Test-Path -LiteralPath $commands){@(Get-ChildItem -LiteralPath $commands -File -Filter '*.command.json').Count}else{$null}
             $heartbeatRecord=Get-BrainTraceLastDiagnosticRecord (Join-Path (Join-Path $targetRoot 'Status') 'Worker-Heartbeat.json')
-            if($null-ne$heartbeatRecord){$record.WorkerHeartbeatUtc=$heartbeatRecord.TimestampUtc}
+            if($null-ne$heartbeatRecord){
+                $record.WorkerHeartbeatUtc=$heartbeatRecord.TimestampUtc
+                $record.TaskState=Get-BrainTraceProperty $heartbeatRecord TaskState $null
+                $record.TaskLastResult=Get-BrainTraceProperty $heartbeatRecord TaskLastResult $null
+                $record.TaskNextRunUtc=Get-BrainTraceProperty $heartbeatRecord TaskNextRunUtc $null
+            }
             $fatalRecord=Get-BrainTraceLastDiagnosticRecord (Join-Path (Join-Path $targetRoot 'Logs') 'Worker-Fatal.jsonl')
             if($null-ne$fatalRecord){$record.Fatal=$fatalRecord.Error}
         }catch{$record.Error=$_.Exception.Message}
@@ -209,12 +216,22 @@ $config=$installed.EnvironmentConfig;[void](Test-BrainTraceEnvironment $config)
 $localNode=Get-BrainTraceNode $config ([string]$installed.LocalNode)
 if($null-eq$localNode){throw "LocalNode '$($installed.LocalNode)' is not in configuration."}
 foreach($folder in @('Commands','Status','Archive','Logs')){$path=Join-Path $Root $folder;if(-not(Test-Path -LiteralPath $path)){New-Item -ItemType Directory -Path $path -Force|Out-Null}}
+$taskState='UNKNOWN';$taskLastResult=$null;$taskNextRunUtc=$null
+try{
+    $task=Get-ScheduledTask -TaskName BrainTrace-Worker -ErrorAction Stop
+    $taskInfo=Get-ScheduledTaskInfo -TaskName BrainTrace-Worker -ErrorAction Stop
+    $taskState=[string]$task.State;$taskLastResult=[int]$taskInfo.LastTaskResult
+    if($taskInfo.NextRunTime-ne[datetime]::MinValue){$taskNextRunUtc=$taskInfo.NextRunTime.ToUniversalTime().ToString('o')}
+}catch{$taskState='NOT FOUND'}
 $heartbeat=[ordered]@{
     TimestampUtc=[datetime]::UtcNow.ToString('o')
     Node=$localNode.Name
     Environment=$config.Environment
     Identity=[Security.Principal.WindowsIdentity]::GetCurrent().Name
     ProcessId=$PID
+    TaskState=$taskState
+    TaskLastResult=$taskLastResult
+    TaskNextRunUtc=$taskNextRunUtc
 }
 Write-BrainTraceJsonAtomic $heartbeat (Join-Path (Join-Path $Root 'Status') 'Worker-Heartbeat.json')
 Publish-BrainTraceRelayDiagnostics $config $localNode $Root

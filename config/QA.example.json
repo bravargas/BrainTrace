@@ -21,6 +21,7 @@
   "Nodes": [
     {
       "Name": "QA-TP01",
+      "DeploymentManager": "QA-TP01",
       "Roles": [
         "TP"
       ],
@@ -44,6 +45,7 @@
     },
     {
       "Name": "QA-APP01",
+      "DeploymentManager": "QA-APP01",
       "Roles": [
         "APP",
         "WEB"

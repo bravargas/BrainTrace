@@ -44,6 +44,19 @@ For a read-only central dashboard that does not depend on Workers processing com
 
 On TP1, the installed `Diagnose-DEV.cmd` launcher opens the same dashboard with no parameters and pauses so the results remain visible.
 
+## Web1 operations center
+
+Web1 is the operator-facing hub while TP1 remains the safety-enforcing execution Controller. Cross-tier communication is file-only:
+
+```text
+Web1 request -> App1 relay -> TP1 executor
+Web1 result  <- App1 relay <- TP1 executor
+```
+
+Run `Operations-DEV.cmd` locally on Web1 to open the menu for Diagnose, Test, Collect, Prepare DryRun, or explicitly confirmed live Prepare. Requests contain only allow-listed high-level operations, names, expiration, and confirmation fields; they cannot supply scripts, cleanup paths, or arbitrary destinations. App1 and TP1 use the separate `BrainTrace-Operations-Monitor` task to relay and execute requests. The ordinary `BrainTrace-Worker` task remains independent so TP1 can wait for Worker results without deadlocking itself.
+
+Live Prepare still executes through `BrainTrace.ps1`, so CLEAN cannot be published unless every required STOP succeeds. A monitor or Worker that is not running cannot consume file requests and still requires local recovery.
+
 The Prepare report lists all six real DEV servers, roles, components, local log paths, command access, collectors, and ordering. The Collect report names the executor, read endpoint, and write endpoint for every source. It shows the ZIP on `vsmobappdev03` and reports that final destination is not configured.
 
 ## Worker installation
@@ -59,25 +72,25 @@ Use the physical server name corresponding to each installation. The default ins
 
 ### Faster DEV deployment
 
-Download, unblock, and extract the release only once on App1. From that source folder, install or update the APP and WEB tier in one pass:
+DEV installation and update uses three configured same-role management zones: TP1 manages TP1/TP2, App1 manages App1/App2, and Web1 manages Web1/Web2. Make the extracted release available to each manager, then run the launcher on those three servers.
 
-For the shortest interactive workflow, open Windows PowerShell as Administrator and run `.\Deploy-DEV.cmd`. The same launcher detects App1 or TP1, previews the affected tier, and requires only `Y` to proceed. Exact copy/paste commands are included in `docs\DEPLOY-DEV-COMMANDS.txt`.
+For normal file updates, open Windows PowerShell as Administrator and run `.\Deploy-DEV.cmd`. For initial installation or explicit task recreation, run `.\Install-DEV.cmd`. Each launcher detects TP1, App1, or Web1, previews only that manager's tier, and requires `Y` to proceed. Exact commands are included in `docs\DEPLOY-DEV-COMMANDS.txt`.
 
-The underlying role-based commands are also available when explicit automation is preferred:
-
-```powershell
-.\scripts\Deploy-BrainTrace.ps1 -Environment DEV -Role APP,WEB -WhatIf
-.\scripts\Deploy-BrainTrace.ps1 -Environment DEV -Role APP,WEB
-```
-
-Then sign in to TP1 and invoke the same script from the App1 source share to update both TP nodes:
+The underlying manager-based commands are also available when explicit automation is preferred:
 
 ```powershell
-& '\\vsmobappdev03\d$\FiservSoftware\PowerShell\BrainTrace-approach-two\scripts\Deploy-BrainTrace.ps1' -Environment DEV -Role TP -WhatIf
-& '\\vsmobappdev03\d$\FiservSoftware\PowerShell\BrainTrace-approach-two\scripts\Deploy-BrainTrace.ps1' -Environment DEV -Role TP
+.\scripts\Deploy-BrainTrace.ps1 -Environment DEV -Manager $env:COMPUTERNAME -WhatIf
+.\scripts\Deploy-BrainTrace.ps1 -Environment DEV -Manager $env:COMPUTERNAME
 ```
 
-The deployment selection comes from the environment configuration. Normal updates copy the current Worker files and refresh each trusted `NodeConfig.json` without changing the existing Scheduled Task, so remote Task Scheduler RPC is not required. For an initial deployment, add `-RegisterScheduledTask`; that option creates or replaces the one-minute `BrainTrace-Worker` task as `SYSTEM` and requires remote Task Scheduler access. A `-WhatIf` pass performs no operation.
+Task creation is explicit and limited to the same configured tier:
+
+```powershell
+.\scripts\Deploy-BrainTrace.ps1 -Environment DEV -Manager $env:COMPUTERNAME -CreateScheduledTasks -WhatIf
+.\scripts\Deploy-BrainTrace.ps1 -Environment DEV -Manager $env:COMPUTERNAME -CreateScheduledTasks
+```
+
+The deployment selection comes from each node's `DeploymentManager`. Cross-role deployment and Scheduler access are rejected by configuration validation. Normal updates remain file-only; `-CreateScheduledTasks` permits Scheduler creation only from TP1 to its TP tier, App1 to its APP tier, or Web1 to its WEB tier. A `-WhatIf` pass performs no operation.
 
 Manual Worker execution:
 

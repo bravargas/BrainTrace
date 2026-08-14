@@ -1,8 +1,8 @@
 [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='Medium')]
 param(
     [Parameter(Mandatory=$true)][string]$Environment,
-    [Parameter(Mandatory=$true)][ValidateSet('TP','APP','WEB')][string[]]$Role,
-    [switch]$RegisterScheduledTask,
+    [string]$Manager=$env:COMPUTERNAME,
+    [switch]$CreateScheduledTasks,
     [ValidateRange(1,1440)][int]$IntervalMinutes=1
 )
 
@@ -18,40 +18,39 @@ function ConvertTo-BrainTraceAdminPath {
     return "\\$ComputerName\$($matches[1])`$\$($matches[2])"
 }
 
-function Register-BrainTraceRemoteTask {
+function Register-BrainTraceManagedTask {
     param([string]$ComputerName,[string]$WorkerRoot,[int]$Minutes)
     $taskCommand='powershell.exe -NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $WorkerRoot 'Worker.ps1')+'"'
     $arguments=@('/Create','/S',$ComputerName,'/TN','BrainTrace-Worker','/TR',$taskCommand,'/SC','MINUTE','/MO',[string]$Minutes,'/RU','SYSTEM','/RL','HIGHEST','/F')
     $output=(& schtasks.exe @arguments 2>&1|Out-String).Trim()
-    if($LASTEXITCODE-ne0){throw "Could not register BrainTrace-Worker on '$ComputerName': $output"}
-    return $output
+    if($LASTEXITCODE-ne0){throw "Could not register the same-tier BrainTrace-Worker task on '$ComputerName': $output"}
 }
 
 $config=Get-BrainTraceEnvironmentConfig $Environment $repositoryRoot
-$selected=@($config.Nodes|Where-Object{
-    $nodeRoles=@($_.Roles)
-    @($Role|Where-Object{$_ -in $nodeRoles}).Count-gt0
-})
-if($selected.Count-eq0){throw "No nodes in '$($config.Environment)' match role(s): $($Role-join', ')."}
+$managerNode=Get-BrainTraceNode $config $Manager
+if($null-eq$managerNode){throw "Deployment manager '$Manager' is not configured in '$($config.Environment)'."}
+if($Manager-ine$env:COMPUTERNAME-and-not$WhatIfPreference){throw "Deployment for '$Manager' must run on that server. Current computer: $($env:COMPUTERNAME)."}
+$selected=@($config.Nodes|Where-Object{$_.DeploymentManager-ieq$Manager})
+if($selected.Count-eq0){throw "Deployment manager '$Manager' has no configured nodes."}
 
 $installer=Join-Path $PSScriptRoot 'Install-Worker.ps1'
 $results=@()
 foreach($node in $selected){
     $isLocal=$node.Name-ieq$env:COMPUTERNAME
     $destination=if($isLocal){[string]$config.WorkerRoot}else{ConvertTo-BrainTraceAdminPath $node.Name ([string]$config.WorkerRoot)}
-    $description=if($RegisterScheduledTask){"Install/update files at '$destination' and register the SYSTEM task"}else{"Update files at '$destination' without changing the Scheduled Task"}
+    $description=if($CreateScheduledTasks){"Install files at '$destination' and create its same-tier Scheduled Task"}else{"Update files at '$destination' without Scheduled Task access"}
     if(-not$PSCmdlet.ShouldProcess($node.Name,$description)){
         $results+=[pscustomobject]@{Node=$node.Name;Success=$true;Result='Planned only (-WhatIf)'}
         continue
     }
     try{
-        if($isLocal){
-            & $installer -Environment $Environment -Node $node.Name -Destination $destination -CreateScheduledTask:$RegisterScheduledTask -IntervalMinutes $IntervalMinutes
+        if($isLocal-and$CreateScheduledTasks){
+            & $installer -Environment $Environment -Node $node.Name -Destination $destination -CreateScheduledTask -IntervalMinutes $IntervalMinutes
         }else{
             & $installer -Environment $Environment -Node $node.Name -Destination $destination
-            if($RegisterScheduledTask){[void](Register-BrainTraceRemoteTask $node.Name ([string]$config.WorkerRoot) $IntervalMinutes)}
+            if($CreateScheduledTasks){[void](Register-BrainTraceManagedTask $node.Name ([string]$config.WorkerRoot) $IntervalMinutes)}
         }
-        $result=if($RegisterScheduledTask){'Files and task updated'}else{'Files updated; task unchanged'}
+        $result=if($CreateScheduledTasks){'Files and same-tier task installed'}else{'Files updated; task unchanged'}
         $results+=[pscustomobject]@{Node=$node.Name;Success=$true;Result=$result}
     }catch{
         $results+=[pscustomobject]@{Node=$node.Name;Success=$false;Result=$_.Exception.Message}

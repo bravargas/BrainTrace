@@ -54,6 +54,25 @@ function Test-BrainTraceEnvironment {
         if($node.CommandAccess -notin @('Direct','Via')){throw "CommandAccess must be Direct or Via on '$($node.Name)'."}
         if($node.CommandAccess-eq'Via' -and (-not$seen.ContainsKey(([string]$node.CommandVia).ToUpperInvariant()))){throw "Unknown CommandVia on '$($node.Name)'."}
         if(-not$seen.ContainsKey(([string]$node.CollectBy).ToUpperInvariant())){throw "Unknown CollectBy on '$($node.Name)'."}
+        $managerName=[string](Get-BrainTraceProperty $node DeploymentManager '')
+        if([string]::IsNullOrWhiteSpace($managerName)-or-not$seen.ContainsKey($managerName.ToUpperInvariant())){throw "Unknown DeploymentManager on '$($node.Name)'."}
+        $manager=@($nodes|Where-Object{$_.Name-ieq$managerName})[0]
+        if(@(@($node.Roles)|Where-Object{$_ -in @($manager.Roles)}).Count-eq0){throw "DeploymentManager '$managerName' does not share a role with '$($node.Name)'."}
+    }
+    $operations=Get-BrainTraceProperty $Config Operations $null
+    if($null-ne$operations){
+        foreach($property in @('Hub','Relay','Executor')){
+            $name=[string](Get-BrainTraceProperty $operations $property '')
+            if([string]::IsNullOrWhiteSpace($name)-or-not$seen.ContainsKey($name.ToUpperInvariant())){throw "Unknown Operations.$property node '$name'."}
+        }
+        foreach($property in @('HubRoot','RelayRoot')){
+            $path=[string](Get-BrainTraceProperty $operations $property '')
+            if([string]::IsNullOrWhiteSpace($path)-or-not[IO.Path]::IsPathRooted($path)){throw "Operations.$property must be an absolute local path."}
+        }
+        foreach($property in @('HubRootUNC','RelayRootUNC')){
+            $path=[string](Get-BrainTraceProperty $operations $property '')
+            if(-not$path.StartsWith('\\')){throw "Operations.$property must be a UNC path."}
+        }
     }
     return $true
 }

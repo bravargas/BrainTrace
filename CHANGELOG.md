@@ -16,10 +16,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bra
 - `Test-Worker.ps1` for a one-command, isolated local Worker smoke test that verifies DryRun state preservation and queue/status/archive behavior.
 - `BrainTrace.ps1 Test` for non-mutating end-to-end Worker/relay health and directional collection-access checks before Prepare or Collect.
 - Explicitly confirmed `Test-Worker.ps1 -LiveStopStart` validation with real state verification and START recovery in `finally`; it never invokes CLEAN or collection.
-- Role-based `Deploy-BrainTrace.ps1` automation for installing or updating a DEV tier and its remote Scheduled Tasks in one pass.
+- Manager-based `Deploy-BrainTrace.ps1` automation for updating a configured same-role DEV tier in one pass.
 - Parameter-free DEV launcher and copy/paste command sheet for choosing the APP/WEB or TP deployment tier from the current server.
 - Central read-only `BrainTrace.ps1 Diagnose` dashboard with configured node aliases, installation/task checks, queue counts, Worker heartbeats, and fatal startup errors.
 - Relay-side diagnostic snapshots let the Controller inspect WEB Worker files, queues, heartbeats, and fatal errors without direct WEB access.
+- Web1 operations portal with file-only Web1→App1→TP1 request relay and TP1→App1→Web1 result return for Diagnose, Test, Collect, and safely confirmed Prepare operations.
+- Independent App1 relay and TP1 executor monitor tasks so global operations never block the Workers required to process node commands.
 
 ### Changed
 
@@ -29,10 +31,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bra
 - Excluded installed node configuration, queues, logs, staging, and generated ZIP files from Git when the repository doubles as the Worker directory.
 - Organized repository runtime code under `src`, operational tooling under `scripts`, and operator notes under `docs`, while retaining the root deployment launcher and flat installed layout.
 - Added live per-command wait, activity, elapsed-time, and result output so Controller operations no longer appear idle while Workers respond.
-- Made role-based deployments update files without touching existing Scheduled Tasks by default; initial remote task registration now requires `-RegisterScheduledTask`.
+- Separated deployment management into TP1→TP, App1→APP, and Web1→WEB zones; cross-role Scheduler access is prohibited while explicitly requested same-role task installation is supported.
 
 ### Fixed
 
+- Deferred `$PSScriptRoot`-based defaults until after parameter binding so Windows PowerShell 5.1 Scheduled Tasks can start Worker, monitor, portal, and smoke-test scripts instead of exiting with result code 1 before diagnostic logging begins.
 - Persist fatal Worker startup/task-context errors to `Logs/Worker-Fatal.jsonl` so Scheduled Task failures can be diagnosed without an interactive session.
 - Allowed an existing `NodeConfig.json` to be replaced during Worker reinstallation.
 - Replaced the invalid Task Scheduler `TimeSpan.MaxValue` repetition duration with a finite ten-year duration accepted by task XML.

@@ -3,25 +3,25 @@ BRAINTRACE DEV - QUICK DEPLOYMENT
 
 Open Windows PowerShell as Administrator.
 
-ON APP1
--------
-Open the extracted BrainTrace folder and run:
+ON TP1, APP1, AND WEB1
+----------------------
+Make the extracted BrainTrace folder available on each tier manager. On each
+manager, run this for normal file updates:
 
 .\Deploy-DEV.cmd
 
+For initial installation or explicit Scheduled Task recreation, run instead:
 
-ON TP1
-------
-Copy and paste this line:
+.\Install-DEV.cmd
 
-& '\\vsmobappdev03\d$\FiservSoftware\PowerShell\BrainTrace-approach-two\Deploy-DEV.cmd'
+The launcher automatically selects only its same-role tier:
+  TP1  -> TP1 and TP2
+  App1 -> App1 and App2
+  Web1 -> Web1 and Web2
 
+It previews the selected servers and asks for Y before making changes.
 
-The launcher detects whether it is running on App1 or TP1, previews the correct
-servers, and asks for Y before changing files or Scheduled Tasks.
-
-After both deployments, test from TP1 with:
+After all three tier deployments, test from TP1 with:
 
 cd D:\FiservSoftware\PowerShell\BrainTrace
 .\BrainTrace.ps1 Test -Environment DEV
-

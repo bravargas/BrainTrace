@@ -18,10 +18,21 @@
     "AppPools"
   ],
   "BundleDestination": null,
+  "Operations": {
+    "Hub": "vsmobwebdev05",
+    "Relay": "vsmobappdev03",
+    "Executor": "vscorappdev01",
+    "HubRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsHub",
+    "HubRootUNC": "\\\\vsmobwebdev05\\d$\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsHub",
+    "RelayRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsRelay",
+    "RelayRootUNC": "\\\\vsmobappdev03\\d$\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsRelay",
+    "RequestTimeoutMinutes": 30
+  },
   "Nodes": [
     {
       "Name": "vscorappdev01",
       "Alias": "TP1",
+      "DeploymentManager": "vscorappdev01",
       "Roles": [
         "TP"
       ],
@@ -46,6 +57,7 @@
     {
       "Name": "vscorappdev02",
       "Alias": "TP2",
+      "DeploymentManager": "vscorappdev01",
       "Roles": [
         "TP"
       ],
@@ -70,6 +82,7 @@
     {
       "Name": "vsmobappdev03",
       "Alias": "App1",
+      "DeploymentManager": "vsmobappdev03",
       "Roles": [
         "APP"
       ],
@@ -94,6 +107,7 @@
     {
       "Name": "vsmobappdev04",
       "Alias": "App2",
+      "DeploymentManager": "vsmobappdev03",
       "Roles": [
         "APP"
       ],
@@ -118,6 +132,7 @@
     {
       "Name": "vsmobwebdev05",
       "Alias": "Web1",
+      "DeploymentManager": "vsmobwebdev05",
       "Roles": [
         "WEB"
       ],
@@ -141,6 +156,7 @@
     {
       "Name": "vsmobwebdev06",
       "Alias": "Web2",
+      "DeploymentManager": "vsmobwebdev05",
       "Roles": [
         "WEB"
       ],

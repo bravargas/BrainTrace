@@ -18,6 +18,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bra
 - Explicitly confirmed `Test-Worker.ps1 -LiveStopStart` validation with real state verification and START recovery in `finally`; it never invokes CLEAN or collection.
 - Role-based `Deploy-BrainTrace.ps1` automation for installing or updating a DEV tier and its remote Scheduled Tasks in one pass.
 - Parameter-free DEV launcher and copy/paste command sheet for choosing the APP/WEB or TP deployment tier from the current server.
+- Central read-only `BrainTrace.ps1 Diagnose` dashboard with configured node aliases, installation/task checks, queue counts, Worker heartbeats, and fatal startup errors.
+- Relay-side diagnostic snapshots let the Controller inspect WEB Worker files, queues, heartbeats, and fatal errors without direct WEB access.
 
 ### Changed
 
@@ -26,6 +28,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bra
 - Made Worker installation safe when the source repository and installation destination are the same directory.
 - Excluded installed node configuration, queues, logs, staging, and generated ZIP files from Git when the repository doubles as the Worker directory.
 - Organized repository runtime code under `src`, operational tooling under `scripts`, and operator notes under `docs`, while retaining the root deployment launcher and flat installed layout.
+- Added live per-command wait, activity, elapsed-time, and result output so Controller operations no longer appear idle while Workers respond.
+- Made role-based deployments update files without touching existing Scheduled Tasks by default; initial remote task registration now requires `-RegisterScheduledTask`.
 
 ### Fixed
 

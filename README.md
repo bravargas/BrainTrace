@@ -34,6 +34,16 @@ After every Worker is installed, run the non-mutating end-to-end preflight from 
 
 `Test` publishes only `PING` and `CHECK_COLLECTION` commands. It verifies direct and one-hop Worker delivery plus source/staging reachability from each configured collector. It does not stop/start components, clean logs, invoke Robocopy, or create a ZIP.
 
+For a read-only central dashboard that does not depend on Workers processing commands, run from the installed Controller:
+
+```powershell
+.\BrainTrace.ps1 Diagnose -Environment DEV
+```
+
+`Diagnose` shows the friendly DEV node alias, installed-file access, Scheduled Task state, last visible result, Worker heartbeat age, queued command count, and the latest fatal startup error. It does not publish commands or change tasks.
+
+On TP1, the installed `Diagnose-DEV.cmd` launcher opens the same dashboard with no parameters and pauses so the results remain visible.
+
 The Prepare report lists all six real DEV servers, roles, components, local log paths, command access, collectors, and ordering. The Collect report names the executor, read endpoint, and write endpoint for every source. It shows the ZIP on `vsmobappdev03` and reports that final destination is not configured.
 
 ## Worker installation
@@ -67,7 +77,7 @@ Then sign in to TP1 and invoke the same script from the App1 source share to upd
 & '\\vsmobappdev03\d$\FiservSoftware\PowerShell\BrainTrace-approach-two\scripts\Deploy-BrainTrace.ps1' -Environment DEV -Role TP
 ```
 
-The deployment selection comes from the environment configuration. It copies the current Worker files, refreshes each trusted `NodeConfig.json`, and creates or replaces the one-minute `BrainTrace-Worker` task as `SYSTEM`. Remote deployment requires administrative-share and remote Task Scheduler access from the account running the command. A `-WhatIf` pass performs neither operation.
+The deployment selection comes from the environment configuration. Normal updates copy the current Worker files and refresh each trusted `NodeConfig.json` without changing the existing Scheduled Task, so remote Task Scheduler RPC is not required. For an initial deployment, add `-RegisterScheduledTask`; that option creates or replaces the one-minute `BrainTrace-Worker` task as `SYSTEM` and requires remote Task Scheduler access. A `-WhatIf` pass performs no operation.
 
 Manual Worker execution:
 

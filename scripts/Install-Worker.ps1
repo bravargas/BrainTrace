@@ -34,10 +34,16 @@ if($PSCmdlet.ShouldProcess($Destination,"Install BrainTrace Worker for $Node")){
         }
     }
     if($nodeConfig.Name-ieq$config.Controller){
-        $controllerSource=Join-Path $sourceRoot 'BrainTrace.ps1'
-        $controllerDestination=Join-Path $Destination 'BrainTrace.ps1'
-        if(-not([IO.Path]::GetFullPath($controllerSource).Equals([IO.Path]::GetFullPath($controllerDestination),[StringComparison]::OrdinalIgnoreCase))){
-            Copy-Item -LiteralPath $controllerSource -Destination $controllerDestination -Force
+        $controllerFiles=[ordered]@{
+            'BrainTrace.ps1'=(Join-Path $sourceRoot 'BrainTrace.ps1')
+            'Diagnose-DEV.cmd'=(Join-Path $repositoryRoot 'Diagnose-DEV.cmd')
+        }
+        foreach($fileName in $controllerFiles.Keys){
+            $controllerSource=$controllerFiles[$fileName]
+            $controllerDestination=Join-Path $Destination $fileName
+            if(-not([IO.Path]::GetFullPath($controllerSource).Equals([IO.Path]::GetFullPath($controllerDestination),[StringComparison]::OrdinalIgnoreCase))){
+                Copy-Item -LiteralPath $controllerSource -Destination $controllerDestination -Force
+            }
         }
         $configDestination=Join-Path $Destination 'config'
         if(-not(Test-Path -LiteralPath $configDestination)){New-Item -ItemType Directory -Path $configDestination -Force|Out-Null}

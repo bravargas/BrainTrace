@@ -8,6 +8,7 @@ Describe 'BrainTrace MVP configuration' {
     It 'validates the real DEV topology' {
         $config=Get-BrainTraceEnvironmentConfig DEV $repo
         $config.Nodes.Count|Should -Be 6
+        @($config.Nodes.Alias)|Should -Be @('TP1','TP2','App1','App2','Web1','Web2')
         $config.Controller|Should -BeExactly vscorappdev01
         $config.Aggregator|Should -BeExactly vsmobappdev03
         $config.WorkerRoot|Should -BeExactly 'D:\FiservSoftware\PowerShell\BrainTrace'
@@ -30,6 +31,36 @@ Describe 'BrainTrace MVP configuration' {
 }
 
 Describe 'BrainTrace DryRun safety' {
+    It 'provides a read-only central diagnostic dashboard' {
+        $controller=Get-Content (Join-Path $src 'BrainTrace.ps1') -Raw
+        $controller|Should -Match "'Diagnose','Test','Prepare','Collect'"
+        $controller|Should -Match 'Worker-Heartbeat\.json'
+        $controller|Should -Match 'Worker-Fatal\.jsonl'
+        $controller|Should -Match 'relay mirror'
+        $controller|Should -Match 'no command files are published'
+    }
+    It 'renders the diagnostic dashboard without requiring a Worker response' {
+        $diagnosticConfig=[ordered]@{
+            Environment='LOCAL-DIAG';Controller=$env:COMPUTERNAME;Aggregator=$env:COMPUTERNAME
+            WorkerRoot=$repo;StagingRoot=(Join-Path $TestDrive 'Staging');StagingRootUNC='\\localhost\c$\Temp\Staging'
+            TimeoutSeconds=5;PollSeconds=1;StopOrder=@('Services');StartOrder=@('Services');BundleDestination=$null
+            Nodes=@([ordered]@{
+                Name=$env:COMPUTERNAME;Alias='TP1';Roles=@('TP');CommandAccess='Direct';CommandRoot=$repo;CollectBy=$env:COMPUTERNAME
+                Components=[ordered]@{Services=@();AppPools=@();ManageIIS=$false};Logs=@()
+            })
+        }
+        $path=Join-Path $TestDrive 'LOCAL-DIAG.json';Write-BrainTraceJsonAtomic $diagnosticConfig $path
+        $output=& (Join-Path $src 'BrainTrace.ps1') Diagnose -Environment $path 6>&1|Out-String
+        $output|Should -Match 'BrainTrace Diagnose'
+        $output|Should -Match 'TP1'
+        $output|Should -Match 'Read-only inspection'
+    }
+    It 'shows live Worker wait progress for non-DryRun operations' {
+        $controller=Get-Content (Join-Path $src 'BrainTrace.ps1') -Raw
+        $controller|Should -Match 'Waiting for'
+        $controller|Should -Match "Write-Host '\.' -NoNewline"
+        $controller|Should -Match '\$elapsed'
+    }
     It 'prints every DEV node without creating files' {
         $sandbox=Join-Path $TestDrive 'sandbox';New-Item -ItemType Directory $sandbox|Out-Null
         $before=@(Get-ChildItem $sandbox -Force -Recurse).Count

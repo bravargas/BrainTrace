@@ -158,6 +158,38 @@ function Wait-BrainTraceStatus {
     return $null
 }
 
+function Get-BrainTraceLastDiagnosticRecord {
+    param([string]$Path)
+    if(-not(Test-Path -LiteralPath $Path -PathType Leaf)){return $null}
+    try{
+        $content=if([IO.Path]::GetExtension($Path)-ieq'.jsonl'){Get-Content -LiteralPath $Path -Tail 1 -Encoding UTF8}else{Get-Content -LiteralPath $Path -Raw -Encoding UTF8}
+        return $content|ConvertFrom-Json -ErrorAction Stop
+    }catch{return $null}
+}
+
+function Publish-BrainTraceRelayDiagnostics {
+    param($Config,$LocalNode,[string]$Root)
+    $mirrorRoot=Join-Path (Join-Path $Root 'Status') 'Relays'
+    if(-not(Test-Path -LiteralPath $mirrorRoot)){New-Item -ItemType Directory -Path $mirrorRoot -Force|Out-Null}
+    foreach($target in @($Config.Nodes|Where-Object{$_.CommandAccess-eq'Via'-and$_.CommandVia-ieq$LocalNode.Name})){
+        $record=[ordered]@{TimestampUtc=[datetime]::UtcNow.ToString('o');Node=$target.Name;Reachable=$false;Files='NO ACCESS';Queued=$null;WorkerHeartbeatUtc=$null;Fatal=$null;Error=$null}
+        try{
+            $targetRoot=[string]$target.CommandRoot
+            if(-not(Test-Path -LiteralPath $targetRoot -PathType Container)){throw "Cannot reach '$targetRoot'."}
+            $record.Reachable=$true
+            $missing=@(@('Worker.ps1','BrainTrace.Common.ps1','NodeConfig.json')|Where-Object{-not(Test-Path -LiteralPath (Join-Path $targetRoot $_) -PathType Leaf)})
+            $record.Files=if($missing.Count){'MISSING: '+($missing-join', ')}else{'OK'}
+            $commands=Join-Path $targetRoot 'Commands'
+            $record.Queued=if(Test-Path -LiteralPath $commands){@(Get-ChildItem -LiteralPath $commands -File -Filter '*.command.json').Count}else{$null}
+            $heartbeatRecord=Get-BrainTraceLastDiagnosticRecord (Join-Path (Join-Path $targetRoot 'Status') 'Worker-Heartbeat.json')
+            if($null-ne$heartbeatRecord){$record.WorkerHeartbeatUtc=$heartbeatRecord.TimestampUtc}
+            $fatalRecord=Get-BrainTraceLastDiagnosticRecord (Join-Path (Join-Path $targetRoot 'Logs') 'Worker-Fatal.jsonl')
+            if($null-ne$fatalRecord){$record.Fatal=$fatalRecord.Error}
+        }catch{$record.Error=$_.Exception.Message}
+        Write-BrainTraceJsonAtomic $record (Join-Path $mirrorRoot ($target.Name+'.json'))
+    }
+}
+
 function Invoke-BrainTraceRelay {
     param($Command,$Config,$LocalNode,[string]$Root)
     $target=Get-BrainTraceNode $Config $Command.TargetNode
@@ -177,6 +209,15 @@ $config=$installed.EnvironmentConfig;[void](Test-BrainTraceEnvironment $config)
 $localNode=Get-BrainTraceNode $config ([string]$installed.LocalNode)
 if($null-eq$localNode){throw "LocalNode '$($installed.LocalNode)' is not in configuration."}
 foreach($folder in @('Commands','Status','Archive','Logs')){$path=Join-Path $Root $folder;if(-not(Test-Path -LiteralPath $path)){New-Item -ItemType Directory -Path $path -Force|Out-Null}}
+$heartbeat=[ordered]@{
+    TimestampUtc=[datetime]::UtcNow.ToString('o')
+    Node=$localNode.Name
+    Environment=$config.Environment
+    Identity=[Security.Principal.WindowsIdentity]::GetCurrent().Name
+    ProcessId=$PID
+}
+Write-BrainTraceJsonAtomic $heartbeat (Join-Path (Join-Path $Root 'Status') 'Worker-Heartbeat.json')
+Publish-BrainTraceRelayDiagnostics $config $localNode $Root
 $processed=0
 foreach($file in @(Get-ChildItem -LiteralPath (Join-Path $Root 'Commands') -File -Filter '*.command.json'|Sort-Object Name|Select-Object -First $MaxCommands)){
     $script:CurrentCommandPath=$file.FullName;$command=$null;$success=$false;$message=''

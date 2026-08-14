@@ -33,12 +33,15 @@ Describe 'Worker installer support' {
         $deployment=Get-Content (Join-Path $scripts 'Deploy-BrainTrace.ps1') -Raw
         $deployment|Should -Match 'config\.Nodes'
         $deployment|Should -Match 'config\.WorkerRoot'
+        $deployment|Should -Match 'RegisterScheduledTask'
+        $deployment|Should -Match 'task unchanged'
         $deployment|Should -Match "'/RU','SYSTEM'"
     }
 
     It 'persists fatal Scheduled Task context errors for diagnosis' {
         $worker = Get-Content -LiteralPath (Join-Path $src 'Worker.ps1') -Raw
         $worker | Should -Match ([regex]::Escape('Worker-Fatal.jsonl'))
+        $worker | Should -Match 'Publish-BrainTraceRelayDiagnostics'
         $worker | Should -Match 'trap\s*\{'
     }
 
@@ -63,7 +66,7 @@ Describe 'Worker installer support' {
     It 'installs the organized repository into the unchanged flat runtime layout' {
         $destination=Join-Path $TestDrive 'installed-controller'
         & (Join-Path $scripts 'Install-Worker.ps1') -Environment DEV -Node vscorappdev01 -Destination $destination|Out-Null
-        foreach($relativePath in @('Worker.ps1','BrainTrace.Common.ps1','Test-Worker.ps1','BrainTrace.ps1','NodeConfig.json','config\DEV.json')){
+        foreach($relativePath in @('Worker.ps1','BrainTrace.Common.ps1','Test-Worker.ps1','BrainTrace.ps1','Diagnose-DEV.cmd','NodeConfig.json','config\DEV.json')){
             Test-Path (Join-Path $destination $relativePath)|Should -BeTrue
         }
         (Read-BrainTraceJson (Join-Path $destination 'NodeConfig.json')).LocalNode|Should -BeExactly 'vscorappdev01'

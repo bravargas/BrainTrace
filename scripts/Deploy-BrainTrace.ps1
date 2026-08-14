@@ -2,6 +2,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$Environment,
     [Parameter(Mandatory=$true)][ValidateSet('TP','APP','WEB')][string[]]$Role,
+    [switch]$RegisterScheduledTask,
     [ValidateRange(1,1440)][int]$IntervalMinutes=1
 )
 
@@ -38,19 +39,20 @@ $results=@()
 foreach($node in $selected){
     $isLocal=$node.Name-ieq$env:COMPUTERNAME
     $destination=if($isLocal){[string]$config.WorkerRoot}else{ConvertTo-BrainTraceAdminPath $node.Name ([string]$config.WorkerRoot)}
-    $description="Install/update files at '$destination' and register the SYSTEM task"
+    $description=if($RegisterScheduledTask){"Install/update files at '$destination' and register the SYSTEM task"}else{"Update files at '$destination' without changing the Scheduled Task"}
     if(-not$PSCmdlet.ShouldProcess($node.Name,$description)){
         $results+=[pscustomobject]@{Node=$node.Name;Success=$true;Result='Planned only (-WhatIf)'}
         continue
     }
     try{
         if($isLocal){
-            & $installer -Environment $Environment -Node $node.Name -Destination $destination -CreateScheduledTask -IntervalMinutes $IntervalMinutes
+            & $installer -Environment $Environment -Node $node.Name -Destination $destination -CreateScheduledTask:$RegisterScheduledTask -IntervalMinutes $IntervalMinutes
         }else{
             & $installer -Environment $Environment -Node $node.Name -Destination $destination
-            [void](Register-BrainTraceRemoteTask $node.Name ([string]$config.WorkerRoot) $IntervalMinutes)
+            if($RegisterScheduledTask){[void](Register-BrainTraceRemoteTask $node.Name ([string]$config.WorkerRoot) $IntervalMinutes)}
         }
-        $results+=[pscustomobject]@{Node=$node.Name;Success=$true;Result=if($isLocal){'Updated locally'}else{'Updated remotely'}}
+        $result=if($RegisterScheduledTask){'Files and task updated'}else{'Files updated; task unchanged'}
+        $results+=[pscustomobject]@{Node=$node.Name;Success=$true;Result=$result}
     }catch{
         $results+=[pscustomobject]@{Node=$node.Name;Success=$false;Result=$_.Exception.Message}
     }

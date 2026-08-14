@@ -21,6 +21,7 @@
   "Nodes": [
     {
       "Name": "vscorappdev01",
+      "Alias": "TP1",
       "Roles": [
         "TP"
       ],
@@ -44,6 +45,7 @@
     },
     {
       "Name": "vscorappdev02",
+      "Alias": "TP2",
       "Roles": [
         "TP"
       ],
@@ -67,6 +69,7 @@
     },
     {
       "Name": "vsmobappdev03",
+      "Alias": "App1",
       "Roles": [
         "APP"
       ],
@@ -90,6 +93,7 @@
     },
     {
       "Name": "vsmobappdev04",
+      "Alias": "App2",
       "Roles": [
         "APP"
       ],
@@ -113,6 +117,7 @@
     },
     {
       "Name": "vsmobwebdev05",
+      "Alias": "Web1",
       "Roles": [
         "WEB"
       ],
@@ -135,6 +140,7 @@
     },
     {
       "Name": "vsmobwebdev06",
+      "Alias": "Web2",
       "Roles": [
         "WEB"
       ],

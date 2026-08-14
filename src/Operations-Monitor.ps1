@@ -66,10 +66,12 @@ function Invoke-BrainTraceOperationsRequest {
     if($Request.Operation-eq'Collect'-and[string]::IsNullOrWhiteSpace([string]$Request.Name)){throw 'Collect requires Name.'}
     if($Request.Operation-eq'Prepare'-and-not[bool]$Request.DryRun-and-not[bool]$Request.Confirmed){throw 'Live Prepare requires explicit confirmation.'}
 
-    $arguments=@([string]$Request.Operation,'-Environment',[string]$Config.Environment)
-    if($Request.Operation-eq'Collect'){$arguments+=@('-Name',[string]$Request.Name)}
-    if([bool]$Request.DryRun-and$Request.Operation-ne'Diagnose'){$arguments+='-DryRun'}
-    $output=(& $CliPath @arguments 6>&1|Out-String).Trim()
+    # Array splatting is positional in Windows PowerShell 5.1, so strings such as
+    # '-Environment' are treated as values. Use a hashtable for named parameters.
+    $parameters=@{Environment=[string]$Config.Environment}
+    if($Request.Operation-eq'Collect'){$parameters.Name=[string]$Request.Name}
+    if([bool]$Request.DryRun-and$Request.Operation-ne'Diagnose'){$parameters.DryRun=$true}
+    $output=(& $CliPath ([string]$Request.Operation) @parameters 6>&1|Out-String).Trim()
     return $output
 }
 

@@ -8,6 +8,32 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
+
+trap {
+    $fatalMessage = $_.Exception.Message
+    try {
+        $fatalDirectory = Join-Path $Root 'Logs'
+        if (-not (Test-Path -LiteralPath $fatalDirectory)) {
+            New-Item -ItemType Directory -Path $fatalDirectory -Force | Out-Null
+        }
+        $fatalRecord = [ordered]@{
+            TimestampUtc = [datetime]::UtcNow.ToString('o')
+            WorkerRoot = $Root
+            Error = $fatalMessage
+        }
+        [IO.File]::AppendAllText(
+            (Join-Path $fatalDirectory 'Worker-Fatal.jsonl'),
+            (($fatalRecord | ConvertTo-Json -Compress) + [Environment]::NewLine),
+            (New-Object Text.UTF8Encoding($false))
+        )
+    }
+    catch {
+        # Preserve the original Worker failure even if diagnostic logging itself fails.
+    }
+    Write-Error $fatalMessage
+    exit 1
+}
+
 . (Join-Path $PSScriptRoot 'BrainTrace.Common.ps1')
 
 function Stop-BrainTraceIIS { param([switch]$WhatIf) if($WhatIf){return};Stop-Service -Name W3SVC -Force -ErrorAction Stop }
@@ -91,6 +117,24 @@ function Invoke-BrainTraceCollect {
     return $messages
 }
 
+function Test-BrainTraceCollectionAccess {
+    param($Command,$Config,$LocalNode)
+    $sourceNode=Get-BrainTraceNode $Config ([string]$Command.SourceNode)
+    if($null-eq$sourceNode){throw "Unknown SourceNode '$($Command.SourceNode)'."}
+    if($sourceNode.CollectBy-ine$LocalNode.Name){throw "'$($LocalNode.Name)' is not configured to collect '$($sourceNode.Name)'."}
+    $messages=@()
+    foreach($log in @($sourceNode.Logs)){
+        $source=if($sourceNode.Name-ieq$LocalNode.Name){[string]$log.LocalPath}else{[string]$log.UNCPath}
+        if(-not(Test-Path -LiteralPath $source -PathType Container)){throw "Collector '$($LocalNode.Name)' cannot read '$source'."}
+        $messages+="$($log.Id): readable at $source"
+    }
+    $stagingBase=if($Config.Aggregator-ieq$LocalNode.Name){[string]$Config.StagingRoot}else{[string]$Config.StagingRootUNC}
+    $stagingParent=Split-Path -Parent $stagingBase
+    if(-not(Test-Path -LiteralPath $stagingParent -PathType Container)){throw "Collector '$($LocalNode.Name)' cannot reach staging parent '$stagingParent'."}
+    $messages+="Staging parent reachable: $stagingParent"
+    return $messages
+}
+
 function Invoke-BrainTraceBundle {
     param($Command,$Config,$LocalNode,[switch]$WhatIf)
     if($LocalNode.Name-ine$Config.Aggregator){throw 'BUNDLE may run only on the configured Aggregator.'}
@@ -139,12 +183,14 @@ foreach($file in @(Get-ChildItem -LiteralPath (Join-Path $Root 'Commands') -File
     try{
         $command=Read-BrainTraceJson $file.FullName
         if($command.Environment-ine$config.Environment){throw 'Command Environment mismatch.'}
-        if($command.Action-notin@('STOP','CLEAN','START','COLLECT','BUNDLE')){throw "Unsupported action '$($command.Action)'."}
+        if($command.Action-notin@('PING','CHECK_COLLECTION','STOP','CLEAN','START','COLLECT','BUNDLE')){throw "Unsupported action '$($command.Action)'."}
         if(([datetime]$command.ExpiresUtc).ToUniversalTime()-le[datetime]::UtcNow){throw 'Command is expired.'}
         if($command.TargetNode-ine$localNode.Name){$message=Invoke-BrainTraceRelay $command $config $localNode $Root}
         else{
             $workerLog=Join-Path (Join-Path $Root 'Logs') ($command.RunId+'.log')
             switch($command.Action){
+                'PING' {$message="Worker ready on $($localNode.Name)."}
+                'CHECK_COLLECTION' {$message=(Test-BrainTraceCollectionAccess $command $config $localNode)-join'; '}
                 'STOP' {$message=(Invoke-BrainTraceComponents $localNode STOP $config -WhatIf:$DryRun)-join'; '}
                 'START' {$message=(Invoke-BrainTraceComponents $localNode START $config -WhatIf:$DryRun)-join'; '}
                 'CLEAN' {$message=(Invoke-BrainTraceClean $localNode -WhatIf:$DryRun)-join'; '}

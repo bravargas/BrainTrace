@@ -10,8 +10,10 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
-. (Join-Path $PSScriptRoot 'BrainTrace.Common.ps1')
-$config=Get-BrainTraceEnvironmentConfig $Environment $PSScriptRoot
+$repositoryRoot=Split-Path -Parent $PSScriptRoot
+$sourceRoot=Join-Path $repositoryRoot 'src'
+. (Join-Path $sourceRoot 'BrainTrace.Common.ps1')
+$config=Get-BrainTraceEnvironmentConfig $Environment $repositoryRoot
 $nodeConfig=Get-BrainTraceNode $config $Node
 if($null-eq$nodeConfig){throw "Node '$Node' is not in environment '$($config.Environment)'."}
 
@@ -19,11 +21,30 @@ if($PSCmdlet.ShouldProcess($Destination,"Install BrainTrace Worker for $Node")){
     foreach($folder in @($Destination,(Join-Path $Destination 'Commands'),(Join-Path $Destination 'Status'),(Join-Path $Destination 'Archive'),(Join-Path $Destination 'Logs'))){
         if(-not(Test-Path -LiteralPath $folder)){New-Item -ItemType Directory -Path $folder -Force|Out-Null}
     }
-    foreach($fileName in @('Worker.ps1','BrainTrace.Common.ps1','Test-Worker.ps1')){
-        $sourcePath=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot $fileName))
+    $runtimeFiles=[ordered]@{
+        'Worker.ps1'=(Join-Path $sourceRoot 'Worker.ps1')
+        'BrainTrace.Common.ps1'=(Join-Path $sourceRoot 'BrainTrace.Common.ps1')
+        'Test-Worker.ps1'=(Join-Path $PSScriptRoot 'Test-Worker.ps1')
+    }
+    foreach($fileName in $runtimeFiles.Keys){
+        $sourcePath=[IO.Path]::GetFullPath($runtimeFiles[$fileName])
         $destinationPath=[IO.Path]::GetFullPath((Join-Path $Destination $fileName))
         if(-not$sourcePath.Equals($destinationPath,[StringComparison]::OrdinalIgnoreCase)){
             Copy-Item -LiteralPath $sourcePath -Destination $destinationPath -Force
+        }
+    }
+    if($nodeConfig.Name-ieq$config.Controller){
+        $controllerSource=Join-Path $sourceRoot 'BrainTrace.ps1'
+        $controllerDestination=Join-Path $Destination 'BrainTrace.ps1'
+        if(-not([IO.Path]::GetFullPath($controllerSource).Equals([IO.Path]::GetFullPath($controllerDestination),[StringComparison]::OrdinalIgnoreCase))){
+            Copy-Item -LiteralPath $controllerSource -Destination $controllerDestination -Force
+        }
+        $configDestination=Join-Path $Destination 'config'
+        if(-not(Test-Path -LiteralPath $configDestination)){New-Item -ItemType Directory -Path $configDestination -Force|Out-Null}
+        $environmentSource=if(Test-Path -LiteralPath $Environment -PathType Leaf){(Resolve-Path $Environment).Path}else{Join-Path (Join-Path $repositoryRoot 'config') ($Environment+'.json')}
+        $environmentDestination=Join-Path $configDestination ($config.Environment+'.json')
+        if(-not([IO.Path]::GetFullPath($environmentSource).Equals([IO.Path]::GetFullPath($environmentDestination),[StringComparison]::OrdinalIgnoreCase))){
+            Copy-Item -LiteralPath $environmentSource -Destination $environmentDestination -Force
         }
     }
     Write-BrainTraceJsonAtomic ([ordered]@{LocalNode=$nodeConfig.Name;EnvironmentConfig=$config}) (Join-Path $Destination 'NodeConfig.json')

@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true,Position=0)][ValidateSet('Prepare','Collect')][string]$Command,
+    [Parameter(Mandatory=$true,Position=0)][ValidateSet('Test','Prepare','Collect')][string]$Command,
     [Parameter(Mandatory=$true)][string]$Environment,
     [string]$Name,
     [switch]$DryRun
@@ -9,6 +9,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'BrainTrace.Common.ps1')
+$configurationRoot=if(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'config') -PathType Container){$PSScriptRoot}else{Split-Path -Parent $PSScriptRoot}
 
 function New-BrainTraceCommand {
     param($Config,[string]$RunId,[string]$Target,[string]$Action,[string]$SourceNode,[string]$Name)
@@ -93,6 +94,24 @@ function Show-BrainTraceCollectDryRun {
     Write-Host 'No command files, copies, or ZIP files were created.'
 }
 
+function Invoke-BrainTraceEnvironmentTest {
+    param($Config,[string]$RunId)
+    Write-Host "BrainTrace Test`nEnvironment: $($Config.Environment)`nRun: $RunId"
+    $ping=@(Invoke-BrainTraceNodeAction $Config $RunId PING)
+    Show-BrainTraceResults PING $ping
+    if(@($ping|Where-Object{-not$_.Success}).Count){throw 'Worker or relay connectivity test failed.'}
+
+    $pending=@()
+    foreach($sourceNode in @($Config.Nodes)){
+        $message=New-BrainTraceCommand $Config $RunId $sourceNode.CollectBy CHECK_COLLECTION $sourceNode.Name $null
+        $pending+=Send-BrainTraceCommand $Config $message
+    }
+    $checks=@();foreach($item in $pending){$checks+=Wait-BrainTraceControllerStatus $Config $item}
+    Show-BrainTraceResults COLLECTION_ACCESS $checks
+    if(@($checks|Where-Object{-not$_.Success}).Count){throw 'One or more directional collection access checks failed.'}
+    Write-Host "`nAll Workers, relay routes, source reads, and staging paths passed."
+}
+
 function Invoke-BrainTraceDirectCopy {
     param($Row,[string]$LogPath)
     if(-not(Test-Path -LiteralPath $Row.Destination)){New-Item -ItemType Directory -Path $Row.Destination -Force|Out-Null}
@@ -101,9 +120,12 @@ function Invoke-BrainTraceDirectCopy {
     [pscustomobject]@{Node=$Row.SourceNode;Action='COLLECT';Success=$result.Success;Message="Executor $($Row.Executor): $($Row.Source) -> $($Row.Destination), exit $($result.ExitCode)"}
 }
 
-$config=Get-BrainTraceEnvironmentConfig $Environment $PSScriptRoot
+$config=Get-BrainTraceEnvironmentConfig $Environment $configurationRoot
 $runId=[datetime]::Now.ToString('yyyyMMdd_HHmmss')
-if($Command-eq'Prepare'){
+if($Command-eq'Test'){
+    if($DryRun){Write-Host "BrainTrace Test - DRY RUN`nWould PING $(@($config.Nodes).Count) Workers and check $(@($config.Nodes).Count) configured collection sources.`nNo command files were published.";return}
+    Invoke-BrainTraceEnvironmentTest $config $runId
+}elseif($Command-eq'Prepare'){
     if($DryRun){Show-BrainTracePrepareDryRun $config $runId;return}
     Write-Host "BrainTrace Prepare`nEnvironment: $($config.Environment)`nRun: $runId"
     $policy=Invoke-BrainTracePreparePolicy { param($action) Invoke-BrainTraceNodeAction $config $runId $action }

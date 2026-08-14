@@ -1,12 +1,15 @@
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='High')]
 param(
     [string]$Root=$PSScriptRoot,
-    [switch]$KeepArtifacts
+    [switch]$KeepArtifacts,
+    [switch]$LiveStopStart
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference='Stop'
-. (Join-Path $PSScriptRoot 'BrainTrace.Common.ps1')
+$commonPath=Join-Path $PSScriptRoot 'BrainTrace.Common.ps1'
+if(-not(Test-Path -LiteralPath $commonPath)){ $commonPath=Join-Path (Join-Path (Split-Path -Parent $PSScriptRoot) 'src') 'BrainTrace.Common.ps1' }
+. $commonPath
 
 function Get-BrainTraceComponentSnapshot {
     param($Node)
@@ -31,6 +34,24 @@ function Get-BrainTraceComponentSnapshot {
     return [pscustomobject]$snapshot
 }
 
+function Invoke-BrainTraceTestAction {
+    param([string]$Action,[string]$TestRoot,[string]$WorkerPath,$Config,$Node)
+    $actionRunId='test_'+$Action.ToLowerInvariant()+'_'+[datetime]::Now.ToString('yyyyMMdd_HHmmss')
+    $actionCommandId=[guid]::NewGuid().ToString('N')
+    $command=[ordered]@{
+        RunId=$actionRunId;CommandId=$actionCommandId;Environment=$Config.Environment;TargetNode=$Node.Name;Action=$Action
+        SourceNode=$null;Name=$null;CreatedUtc=[datetime]::UtcNow.ToString('o');ExpiresUtc=[datetime]::UtcNow.AddMinutes(5).ToString('o')
+    }
+    $commands=Join-Path $TestRoot 'Commands';if(-not(Test-Path -LiteralPath $commands)){New-Item -ItemType Directory -Path $commands -Force|Out-Null}
+    Write-BrainTraceJsonAtomic $command (Join-Path $commands ("$actionRunId`_$actionCommandId.command.json"))
+    [void]@(& $WorkerPath -Root $TestRoot -ConfigPath (Join-Path $TestRoot 'NodeConfig.json'))
+    $statusPath=Join-Path (Join-Path $TestRoot 'Status') ("$actionRunId`_$actionCommandId.status.json")
+    if(-not(Test-Path -LiteralPath $statusPath)){throw "Worker did not publish $Action status."}
+    $status=Read-BrainTraceJson $statusPath
+    if(-not[bool]$status.Success){throw "$Action failed: $($status.Message)"}
+    return $status
+}
+
 $configPath=Join-Path $Root 'NodeConfig.json'
 $workerPath=Join-Path $Root 'Worker.ps1'
 if(-not(Test-Path -LiteralPath $configPath)){throw "Installed NodeConfig.json was not found under '$Root'."}
@@ -48,6 +69,29 @@ $commandId=[guid]::NewGuid().ToString('N')
 try{
     New-Item -ItemType Directory -Path (Join-Path $testRoot 'Commands') -Force|Out-Null
     Copy-Item -LiteralPath $configPath -Destination (Join-Path $testRoot 'NodeConfig.json')
+    if($LiveStopStart){
+        if(-not$PSCmdlet.ShouldProcess($node.Name,'Perform a REAL BrainTrace STOP, verify stopped state, then START and verify recovery')){return}
+        $before=Get-BrainTraceComponentSnapshot $node;$stopStatus=$null;$stopped=$null;$startStatus=$null
+        try{
+            $stopStatus=Invoke-BrainTraceTestAction STOP $testRoot $workerPath $config $node
+            $stopped=Get-BrainTraceComponentSnapshot $node
+            foreach($property in $stopped.PSObject.Properties){
+                if($property.Value-notin@('Stopped')){throw "STOP verification failed for $($property.Name): $($property.Value)."}
+            }
+        }finally{
+            $startStatus=Invoke-BrainTraceTestAction START $testRoot $workerPath $config $node
+        }
+        $after=Get-BrainTraceComponentSnapshot $node
+        foreach($property in $after.PSObject.Properties){
+            if($property.Value-notin@('Running','Started')){throw "START recovery verification failed for $($property.Name): $($property.Value). Manual intervention is required."}
+        }
+        [pscustomobject][ordered]@{
+            Success=$true;Node=$node.Name;Environment=$config.Environment;Test='LIVE STOP/START'
+            Before=$before;AfterStop=$stopped;AfterStart=$after;StopMessage=$stopStatus.Message;StartMessage=$startStatus.Message
+            Warning='Real component interruption occurred; no CLEAN or collection was executed.'
+        }
+        return
+    }
     $command=[ordered]@{
         RunId=$runId;CommandId=$commandId;Environment=$config.Environment;TargetNode=$node.Name;Action='STOP'
         SourceNode=$null;Name=$null;CreatedUtc=[datetime]::UtcNow.ToString('o');ExpiresUtc=[datetime]::UtcNow.AddMinutes(5).ToString('o')

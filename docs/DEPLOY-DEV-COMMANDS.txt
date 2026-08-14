@@ -1,0 +1,27 @@
+BRAINTRACE DEV - QUICK DEPLOYMENT
+=================================
+
+Open Windows PowerShell as Administrator.
+
+ON APP1
+-------
+Open the extracted BrainTrace folder and run:
+
+.\Deploy-DEV.cmd
+
+
+ON TP1
+------
+Copy and paste this line:
+
+& '\\vsmobappdev03\d$\FiservSoftware\PowerShell\BrainTrace-approach-two\Deploy-DEV.cmd'
+
+
+The launcher detects whether it is running on App1 or TP1, previews the correct
+servers, and asks for Y before changing files or Scheduled Tasks.
+
+After both deployments, test from TP1 with:
+
+cd D:\FiservSoftware\PowerShell\BrainTrace
+.\BrainTrace.ps1 Test -Environment DEV
+

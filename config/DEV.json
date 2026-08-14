@@ -25,7 +25,7 @@
     "HubRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsHub",
     "HubRootUNC": "\\\\vsmobwebdev05\\FiservSoftware$\\PowerShell\\BrainTrace\\OperationsHub",
     "RelayRoot": "D:\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsRelay",
-    "RelayRootUNC": "\\\\vsmobappdev03\\d$\\FiservSoftware\\PowerShell\\BrainTrace\\OperationsRelay",
+    "RelayRootUNC": "\\\\vsmobappdev03\\FiservSoftware$\\PowerShell\\BrainTrace\\OperationsRelay",
     "RequestTimeoutMinutes": 30
   },
   "Nodes": [

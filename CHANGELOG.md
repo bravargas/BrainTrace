@@ -35,7 +35,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bra
 
 ### Fixed
 
-- Replaced WEB administrative-share command and operations paths with the dedicated `FiservSoftware$` shares so App1's machine account can relay files without remote administrative access.
+- Replaced WEB and operations-relay administrative-share paths with consistent dedicated `FiservSoftware$` shares so the App1 and TP1 machine accounts can relay files without remote administrative access.
 - Deferred `$PSScriptRoot`-based defaults until after parameter binding so Windows PowerShell 5.1 Scheduled Tasks can start Worker, monitor, portal, and smoke-test scripts instead of exiting with result code 1 before diagnostic logging begins.
 - Persist fatal Worker startup/task-context errors to `Logs/Worker-Fatal.jsonl` so Scheduled Task failures can be diagnosed without an interactive session.
 - Allowed an existing `NodeConfig.json` to be replaced during Worker reinstallation.
